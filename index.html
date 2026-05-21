@@ -1685,48 +1685,73 @@ function initApp() {
 /* ============================================================
    PROFILE
    ============================================================ */
-function loadProfile() {
-  if (!currentUser) return;
+/* ============================================================
+   PROFILES / CARD STACK — IMPROVED
+   ============================================================ */
+async function loadProfiles() {
+  console.log('%c🔄 Loading profiles...', 'color: #3B82F6; font-weight: 600;');
 
-  document.getElementById('edit-name').value = currentUser.name || '';
-  document.getElementById('edit-age').value = currentUser.age || '';
+  try {
+    const res = await apiCall('/discover');
+    console.log('📡 Discover API Response:', res);
 
-  // Location and preferences are NOT pre-filled on login — user must enter them fresh
-  document.getElementById('edit-location').value = '';
-  document.getElementById('edit-bio').value = currentUser.bio || '';
-  document.getElementById('edit-occupation').value = currentUser.occupation || '';
-  document.getElementById('edit-interests').value = (currentUser.interests || []).join(', ');
+    let allProfiles = [];
 
-  // Set gender preference: use saved interestedIn from user profile if present,
-  // otherwise derive a sensible default from the user's own gender.
-  const prefSelect = document.getElementById('pref-interested-in');
-  if (prefSelect) {
-    if (currentUser.interestedIn && ['women','men','everyone'].includes(currentUser.interestedIn)) {
-      prefSelect.value = currentUser.interestedIn;
-    } else {
-      const gender = (currentUser.gender || '').toLowerCase();
-      if (gender === 'man') {
-        prefSelect.value = 'women';
-      } else if (gender === 'woman') {
-        prefSelect.value = 'men';
-      } else {
-        prefSelect.value = 'everyone';
-      }
+    // Priority 1: Use real data from backend
+    if (res && Array.isArray(res.profiles) && res.profiles.length > 0) {
+      allProfiles = res.profiles;
+      console.log(`✅ Loaded ${allProfiles.length} profiles from backend`);
+    } 
+    // Priority 2: Fallback to mock data if backend returns empty or fails
+    else {
+      console.warn('⚠️ Backend returned no profiles. Using mock data as fallback.');
+      allProfiles = [...MOCK_PROFILES];
     }
+
+    // === Client-side filtering based on user preference ===
+    if (currentUser) {
+      const preferenceSelect = document.getElementById('pref-interested-in');
+      const preference = preferenceSelect ? preferenceSelect.value.toLowerCase() : 'everyone';
+
+      console.log(`🎯 User preference: ${preference}`);
+
+      if (preference && preference !== 'everyone') {
+        const preferredGender = preference === 'women' ? 'woman' : 'man';
+        
+        allProfiles = allProfiles.filter(p => {
+          const profileGender = (p.gender || '').toString().toLowerCase();
+          return profileGender === preferredGender;
+        });
+
+        console.log(`Filtered to ${preferredGender}: ${allProfiles.length} profiles remaining`);
+      }
+
+      // Exclude self
+      allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
+    }
+
+    // Final safety net: If still empty, force mock data
+    if (allProfiles.length === 0) {
+      console.warn('⚠️ No profiles after all filtering. Forcing mock data.');
+      allProfiles = [...MOCK_PROFILES];
+    }
+
+    // Update global state
+    profiles = allProfiles;
+    currentCardIndex = 0;
+
+    console.log(`🎉 Final profiles ready: ${profiles.length}`);
+    renderCardStack();
+
+  } catch (error) {
+    console.error('❌ loadProfiles() failed:', error);
+    showToast('Could not load profiles from server. Showing demo profiles.', 'info');
+    
+    // Emergency fallback
+    profiles = [...MOCK_PROFILES];
+    currentCardIndex = 0;
+    renderCardStack();
   }
-
-  // NOW load profiles — the preference dropdown is correctly set at this point.
-  loadProfiles();
-
-  liveUpdateProfile();
-
-  // Render user's own uploaded photos (profile-main-avatar + photo grid)
-  renderUserPhotos();
-
-  // Stats
-  document.getElementById('stat-likes').textContent = currentUser.stats?.likes || Math.floor(Math.random()*50+10);
-  document.getElementById('stat-matches').textContent = currentUser.stats?.matches || myMatches.length || 3;
-  document.getElementById('stat-views').textContent = currentUser.stats?.views || Math.floor(Math.random()*200+50);
 }
 
 /* ============================================================
