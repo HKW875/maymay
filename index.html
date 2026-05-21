@@ -1479,6 +1479,7 @@ const CLOUDINARY_SAMPLES = [
    ============================================================ */
 let currentUser = null;
 let authToken = null;
+let isDemoMode = false;
 let profiles = [];
 let currentCardIndex = 0;
 let myMatches = [];
@@ -1541,6 +1542,7 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 async function apiCall(endpoint, method = 'GET', body = null) {
+  if (isDemoMode) return null; // skip real API calls; callers fall back to mock data
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
   if (body) opts.body = JSON.stringify(body);
@@ -1563,8 +1565,14 @@ async function apiCall(endpoint, method = 'GET', body = null) {
       clearInterval(iv);
       setTimeout(() => {
         const saved = localStorage.getItem('zawadi_token');
-        if (saved) {
+        if (saved && saved !== 'demo-token') {
           authToken = saved;
+          isDemoMode = false;
+          currentUser = JSON.parse(localStorage.getItem('zawadi_user') || '{}');
+          initApp(); showScreen('app');
+        } else if (saved === 'demo-token') {
+          isDemoMode = true;
+          authToken = null;
           currentUser = JSON.parse(localStorage.getItem('zawadi_user') || '{}');
           initApp(); showScreen('app');
         } else {
@@ -1614,8 +1622,9 @@ async function handleLogin() {
     showToast(`Welcome back, ${currentUser.name}!`, 'success');
   } else {
     currentUser = { _id:'demo', name: email.split('@')[0] || 'You', age:30, location:'Nairobi', bio:'', interests:[] };
-    authToken = 'demo-token';
-    localStorage.setItem('zawadi_token', authToken);
+    isDemoMode = true;
+    authToken = null;
+    localStorage.removeItem('zawadi_token');  // never persist demo-token
     localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
     initApp(); showScreen('app');
     showToast('Signed in (demo mode)', 'success');
@@ -1640,15 +1649,16 @@ async function handleRegister() {
     showToast(`Welcome to Zawadi, ${name}!`, 'success');
   } else {
     currentUser = { _id:'demo', name, age, location: country, bio:'', gender, interests:[] };
-    authToken = 'demo-token';
-    localStorage.setItem('zawadi_token', authToken);
+    isDemoMode = true;
+    authToken = null;
+    localStorage.removeItem('zawadi_token');  // never persist demo-token
     localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
     initApp(); showScreen('app');
     showToast(`Welcome to Zawadi, ${name}!`, 'success');
   }
 }
 function handleLogout() {
-  authToken = null; currentUser = null;
+  authToken = null; currentUser = null; isDemoMode = false;
   localStorage.removeItem('zawadi_token');
   localStorage.removeItem('zawadi_user');
   showScreen('auth');
