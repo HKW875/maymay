@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zawadi — Where Africa Connects</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    ZAWADI DATING APP — MODERN BLUE/GREY/ROSE/PURPLE THEME
@@ -62,7 +62,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; scroll-behavior: smooth; }
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', 'Helvetica Neue', sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -244,7 +244,7 @@ body {
 .auth-tab {
   flex: 1; padding: 10px;
   border: none; background: transparent;
-  color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+  color: var(--text-muted); font-family: 'Roboto', 'Helvetica Neue', sans-serif;
   font-size: 14px; font-weight: 500;
   border-radius: 10px; cursor: pointer;
   transition: all 0.25s ease;
@@ -260,7 +260,7 @@ body {
   background: var(--grey-100);
   border: 1.5px solid var(--border);
   border-radius: 12px; padding: 13px 15px;
-  color: var(--text); font-family: 'DM Sans', sans-serif;
+  color: var(--text); font-family: 'Roboto', 'Helvetica Neue', sans-serif;
   font-size: 14px; outline: none;
   transition: border-color 0.2s ease;
   -webkit-appearance: none;
@@ -287,7 +287,7 @@ body {
 .btn {
   border: none; border-radius: 12px;
   padding: 15px 22px; cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', 'Helvetica Neue', sans-serif;
   font-size: 14px; font-weight: 600;
   transition: all 0.2s ease;
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -488,9 +488,10 @@ body {
 }
 .action-btn-like {
   width: 62px; height: 62px;
-  background: linear-gradient(135deg, var(--blue), var(--purple));
-  color: var(--white);
-  box-shadow: var(--shadow-blue);
+  background: rgba(34, 197, 94, 0.10);
+  border: 2px solid #22c55e;
+  color: #22c55e;
+  box-shadow: 0 6px 20px rgba(34,197,94,0.18);
 }
 .action-btn-super {
   width: 50px; height: 50px;
@@ -586,7 +587,7 @@ body {
 }
 .chat-search input {
   flex: 1; background: transparent; border: none; outline: none;
-  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--text); font-family: 'Roboto', 'Helvetica Neue', sans-serif; font-size: 13px;
 }
 .chat-search input::placeholder { color: var(--text-muted); }
 .chat-list { flex: 1; overflow-y: auto; }
@@ -682,7 +683,7 @@ body {
 }
 .chat-input {
   flex: 1; background: transparent; border: none; outline: none;
-  color: var(--text); font-family: 'DM Sans', sans-serif;
+  color: var(--text); font-family: 'Roboto', 'Helvetica Neue', sans-serif;
   font-size: 13px; resize: none; max-height: 120px;
 }
 .chat-input::placeholder { color: var(--text-muted); }
@@ -765,7 +766,7 @@ body {
   width: 100%; background: var(--grey-100);
   border: 1.5px solid var(--border);
   border-radius: 10px; padding: 11px 13px;
-  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--text); font-family: 'Roboto', 'Helvetica Neue', sans-serif; font-size: 13px;
   outline: none; transition: border-color 0.2s;
   -webkit-appearance: none;
 }
@@ -1190,7 +1191,7 @@ body {
         </button>
         <!-- Like -->
         <button class="action-btn action-btn-like" onclick="swipeCard('right')" title="Like">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 24s-10-7-10-14a7 7 0 0114 0 7 7 0 0114 0c0 7-10 14-10 14z" fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 24s-10-7-10-14a7 7 0 0114 0 7 7 0 0114 0c0 7-10 14-10 14z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
         </button>
         <!-- Boost -->
         <button class="action-btn action-btn-sm" onclick="boostProfile()" title="Boost">
@@ -1752,11 +1753,11 @@ function renderCardStack() {
     </div>`;
     return;
   }
-  for (let i = visible.length - 1; i >= 0; i--) {
+  for (let i = 0; i < visible.length; i++) {
     const card = createCard(visible[i], i);
     stack.appendChild(card);
   }
-  const topCard = stack.querySelector('.profile-card:last-child');
+  const topCard = stack.querySelector('.profile-card:first-child');
   if (topCard) attachDrag(topCard);
 }
 function createCard(profile, stackPos) {
@@ -1823,7 +1824,7 @@ function attachDrag(card) {
 }
 function swipeCard(direction, cardEl) {
   const stack = document.getElementById('card-stack');
-  const card = cardEl || stack.querySelector('.profile-card:last-child');
+  const card = cardEl || stack.querySelector('.profile-card:first-child');
   if (!card) return;
   const profile = profiles[currentCardIndex];
   card.classList.add(direction === 'left' ? 'swiping-left' : 'swiping-right');
@@ -1833,13 +1834,12 @@ function swipeCard(direction, cardEl) {
   setTimeout(() => {
     card.remove();
     currentCardIndex++;
-    const newTop = stack.querySelector('.profile-card:last-child');
+    const newTop = stack.querySelector('.profile-card:first-child');
     if (newTop) {
       attachDrag(newTop);
-      stack.querySelectorAll('.profile-card').forEach((c, i, arr) => {
-        const pos = arr.length - 1 - i;
-        if (pos === 0) c.style.transform = '';
-        else if (pos === 1) c.style.transform = 'rotate(2deg) translateY(8px) scale(0.97)';
+      stack.querySelectorAll('.profile-card').forEach((c, i) => {
+        if (i === 0) c.style.transform = '';
+        else if (i === 1) c.style.transform = 'rotate(2deg) translateY(8px) scale(0.97)';
         else c.style.transform = 'rotate(-1.5deg) translateY(16px) scale(0.94)';
       });
     } else renderCardStack();
