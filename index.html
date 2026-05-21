@@ -1320,6 +1320,8 @@ body {
             <div class="photo-slot" onclick="triggerPhotoUpload(5)">+</div>
           </div>
           <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+          <!-- Photo uploads are sent to the backend /api/upload endpoint, stored in Cloudinary,
+               and the resulting URL is saved to the user's photos[] array in MongoDB -->
         </div>
         <div class="profile-section">
           <h3>
@@ -1490,10 +1492,10 @@ let selectedPlan = '1mo';
    MOCK DATA
    ============================================================ */
 const MOCK_PROFILES = [
-  { _id:'p1', name:'Amara Diallo', age:26, location:'Lagos, Nigeria', bio:'Entrepreneur & art lover. Travel is my therapy. 🌍', photos:[CLOUDINARY_SAMPLES[0]], interests:['Art','Travel','Music','Food'] },
-  { _id:'p2', name:'Zuri Okonkwo', age:24, location:'Nairobi, Kenya', bio:'Medical student by day, dancer by night 💃', photos:[CLOUDINARY_SAMPLES[1]], interests:['Dance','Medicine','Poetry'] },
-  { _id:'p3', name:'Nia Mensah', age:28, location:'Accra, Ghana', bio:'Fashion designer with a soul full of stories. Coffee & sunsets.', photos:[CLOUDINARY_SAMPLES[2]], interests:['Fashion','Design','Coffee'] },
-  { _id:'p4', name:'Fatoumata Bah', age:23, location:'Dakar, Senegal', bio:"Journalist | World traveler | Foodie 🍜", photos:[CLOUDINARY_SAMPLES[3]], interests:['Journalism','Travel','Food'] },
+  { _id:'p1', name:'Amara Diallo', age:26, location:'Lagos, Nigeria', bio:'Entrepreneur & art lover. Travel is my therapy. 🌍', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263809/samples/bike.jpg'], interests:['Art','Travel','Music','Food'] },
+  { _id:'p2', name:'Zuri Okonkwo', age:24, location:'Nairobi, Kenya', bio:'Medical student by day, dancer by night 💃', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263828/cld-sample.jpg'], interests:['Dance','Medicine','Poetry'] },
+  { _id:'p3', name:'Nia Mensah', age:28, location:'Accra, Ghana', bio:'Fashion designer with a soul full of stories. Coffee & sunsets.', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/upscale-face-1.jpg'], interests:['Fashion','Design','Coffee'] },
+  { _id:'p4', name:'Fatoumata Bah', age:23, location:'Dakar, Senegal', bio:"Journalist | World traveler | Foodie 🍜", photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/woman-on-a-football-field.jpg'], interests:['Journalism','Travel','Food'] },
   { _id:'p5', name:'Adaeze Eze', age:27, location:'Johannesburg, SA', bio:'Tech entrepreneur building Africa\'s future. 💻', photos:[CLOUDINARY_SAMPLES[4]], interests:['Tech','Wine','Hiking'] },
   { _id:'p6', name:'Seun Alade', age:25, location:'Abuja, Nigeria', bio:'Singer-songwriter. Music is my language. 🎵', photos:[CLOUDINARY_SAMPLES[5]], interests:['Music','Art','Poetry'] },
 ];
@@ -1702,9 +1704,10 @@ function triggerPhotoUpload(slot) {
   activePhotoSlot = slot;
   document.getElementById('photo-input').click();
 }
-function handlePhotoUpload(e) {
+async function handlePhotoUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
+  // Show local preview immediately
   const reader = new FileReader();
   reader.onload = (ev) => {
     const src = ev.target.result;
@@ -1713,18 +1716,49 @@ function handlePhotoUpload(e) {
     } else if (activePhotoSlot !== null) {
       const slots = document.querySelectorAll('.photo-slot');
       if (slots[activePhotoSlot]) {
-        slots[activePhotoSlot].innerHTML = `<img src="${src}"><button class="delete-photo" onclick="deletePhoto(event,${activePhotoSlot})">✕</button>`;
+        slots[activePhotoSlot].innerHTML = `<img src="${src}"><span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:2px 6px;border-radius:5px">Uploading…</span>`;
       }
     }
   };
   reader.readAsDataURL(file);
+  // Upload to backend -> Cloudinary -> URL saved in MongoDB
+  try {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const headers = {};
+    if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    const res = await fetch(API_BASE + '/upload', { method: 'POST', headers, body: formData });
+    const data = await res.json();
+    const url = data.url || data.secure_url;
+    if (url) {
+      if (activePhotoSlot === 'main') {
+        document.getElementById('profile-main-avatar').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+        if (currentUser) { currentUser.photos = currentUser.photos || []; currentUser.photos[0] = url; localStorage.setItem('zawadi_user', JSON.stringify(currentUser)); }
+      } else if (activePhotoSlot !== null) {
+        const slots = document.querySelectorAll('.photo-slot');
+        if (slots[activePhotoSlot]) {
+          slots[activePhotoSlot].innerHTML = `<img src="${url}"><button class="delete-photo" onclick="deletePhoto(event,${activePhotoSlot},'${url}')">&#x2715;</button>`;
+        }
+        if (currentUser) { currentUser.photos = currentUser.photos || []; currentUser.photos[activePhotoSlot] = url; localStorage.setItem('zawadi_user', JSON.stringify(currentUser)); }
+      }
+      showToast('Photo uploaded!', 'success');
+    } else {
+      showToast(data.error || 'Upload failed', 'error');
+      if (activePhotoSlot !== null && activePhotoSlot !== 'main') { const s = document.querySelectorAll('.photo-slot'); if (s[activePhotoSlot]) { s[activePhotoSlot].innerHTML = '+'; s[activePhotoSlot].onclick = () => triggerPhotoUpload(activePhotoSlot); } }
+    }
+  } catch (err) {
+    showToast('Upload failed — check connection', 'error');
+    if (activePhotoSlot !== null && activePhotoSlot !== 'main') { const s = document.querySelectorAll('.photo-slot'); if (s[activePhotoSlot]) { s[activePhotoSlot].innerHTML = '+'; s[activePhotoSlot].onclick = () => triggerPhotoUpload(activePhotoSlot); } }
+  }
   e.target.value = '';
 }
-function deletePhoto(e, slot) {
+async function deletePhoto(e, slot, url) {
   e.stopPropagation();
   const slots = document.querySelectorAll('.photo-slot');
   slots[slot].innerHTML = '+';
   slots[slot].onclick = () => triggerPhotoUpload(slot);
+  if (url) await apiCall('/upload', 'DELETE', { url });
+  if (currentUser && currentUser.photos) { currentUser.photos[slot] = null; localStorage.setItem('zawadi_user', JSON.stringify(currentUser)); }
 }
 function updateAgeRange() {
   document.getElementById('age-min-label').textContent = document.getElementById('age-min').value;
