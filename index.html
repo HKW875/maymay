@@ -1133,7 +1133,7 @@ body {
     </button>
     <!-- Matches -->
     <button class="nav-btn" id="nav-matches" onclick="switchPanel('matches')" title="Matches">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 19s-8-5.5-8-11a5 5 0 0110 0 5 5 0 0110 0c0 5.5-8 11-8 11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto"><path d="M11 18.5C11 18.5 3 13.5 3 8a4.5 4.5 0 0 1 8-2.83A4.5 4.5 0 0 1 19 8c0 5.5-8 10.5-8 10.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="nav-badge" id="matches-badge" style="display:none">3</span>
     </button>
     <!-- Messages -->
@@ -1493,12 +1493,15 @@ let selectedPlan = '1mo';
    MOCK DATA
    ============================================================ */
 const MOCK_PROFILES = [
-  { _id:'p1', name:'Amara Diallo', age:26, location:'Lagos, Nigeria', bio:'Entrepreneur & art lover. Travel is my therapy. 🌍', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263809/samples/bike.jpg'], interests:['Art','Travel','Music','Food'] },
-  { _id:'p2', name:'Zuri Okonkwo', age:24, location:'Nairobi, Kenya', bio:'Medical student by day, dancer by night 💃', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263828/cld-sample.jpg'], interests:['Dance','Medicine','Poetry'] },
-  { _id:'p3', name:'Nia Mensah', age:28, location:'Accra, Ghana', bio:'Fashion designer with a soul full of stories. Coffee & sunsets.', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/upscale-face-1.jpg'], interests:['Fashion','Design','Coffee'] },
-  { _id:'p4', name:'Fatoumata Bah', age:23, location:'Dakar, Senegal', bio:"Journalist | World traveler | Foodie 🍜", photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/woman-on-a-football-field.jpg'], interests:['Journalism','Travel','Food'] },
-  { _id:'p5', name:'Adaeze Eze', age:27, location:'Johannesburg, SA', bio:'Tech entrepreneur building Africa\'s future. 💻', photos:[CLOUDINARY_SAMPLES[4]], interests:['Tech','Wine','Hiking'] },
-  { _id:'p6', name:'Seun Alade', age:25, location:'Abuja, Nigeria', bio:'Singer-songwriter. Music is my language. 🎵', photos:[CLOUDINARY_SAMPLES[5]], interests:['Music','Art','Poetry'] },
+  { _id:'p1', name:'Amara Diallo', age:26, gender:'woman', location:'Lagos, Nigeria', bio:'Entrepreneur & art lover. Travel is my therapy. 🌍', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263809/samples/bike.jpg'], interests:['Art','Travel','Music','Food'] },
+  { _id:'p2', name:'Zuri Okonkwo', age:24, gender:'woman', location:'Nairobi, Kenya', bio:'Medical student by day, dancer by night 💃', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263828/cld-sample.jpg'], interests:['Dance','Medicine','Poetry'] },
+  { _id:'p3', name:'Nia Mensah', age:28, gender:'woman', location:'Accra, Ghana', bio:'Fashion designer with a soul full of stories. Coffee & sunsets.', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/upscale-face-1.jpg'], interests:['Fashion','Design','Coffee'] },
+  { _id:'p4', name:'Fatoumata Bah', age:23, gender:'woman', location:'Dakar, Senegal', bio:"Journalist | World traveler | Foodie 🍜", photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/woman-on-a-football-field.jpg'], interests:['Journalism','Travel','Food'] },
+  { _id:'p5', name:'Adaeze Eze', age:27, gender:'woman', location:'Johannesburg, SA', bio:'Tech entrepreneur building Africa\'s future. 💻', photos:[CLOUDINARY_SAMPLES[4]], interests:['Tech','Wine','Hiking'] },
+  { _id:'p6', name:'Seun Alade', age:25, gender:'woman', location:'Abuja, Nigeria', bio:'Singer-songwriter. Music is my language. 🎵', photos:[CLOUDINARY_SAMPLES[5]], interests:['Music','Art','Poetry'] },
+  { _id:'p7', name:'Kwame Asante', age:29, gender:'man', location:'Accra, Ghana', bio:'Architect | Coffee enthusiast | Amateur chef ☕', photos:[CLOUDINARY_SAMPLES[0]], interests:['Architecture','Food','Coffee'] },
+  { _id:'p8', name:'Emeka Obi', age:31, gender:'man', location:'Lagos, Nigeria', bio:'Finance & fitness. Living intentionally. 💪', photos:[CLOUDINARY_SAMPLES[1]], interests:['Finance','Fitness','Travel'] },
+  { _id:'p9', name:'Tafadzwa Moyo', age:27, gender:'man', location:'Harare, Zimbabwe', bio:'Software engineer building for Africa. 🖥️', photos:[CLOUDINARY_SAMPLES[2]], interests:['Tech','Music','Gaming'] },
 ];
 
 const MOCK_MATCHES = [
@@ -1528,6 +1531,10 @@ function switchPanel(id) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.getElementById('nav-' + id).classList.add('active');
+  // Reload profiles (with preference filter) when navigating to Discover
+  if (id === 'discover') {
+    loadProfiles();
+  }
 }
 function showToast(msg, type = 'info', icon = null) {
   const icons = { success:'✅', error:'✕', info:'ℹ' };
@@ -1651,6 +1658,8 @@ function handleLogout() {
   localStorage.removeItem('zawadi_token');
   localStorage.removeItem('zawadi_user');
   showScreen('auth');
+  // Always land on the Sign In tab, never the Join Free tab
+  switchAuthTab('login');
   showToast('Signed out. See you soon!', 'info');
 }
 
@@ -1669,15 +1678,31 @@ function loadProfile() {
 
   document.getElementById('edit-name').value = currentUser.name || '';
   document.getElementById('edit-age').value = currentUser.age || '';
-  document.getElementById('edit-location').value = currentUser.location || '';
+
+  // Location and preferences are NOT pre-filled on login — user must enter them fresh
+  document.getElementById('edit-location').value = '';
   document.getElementById('edit-bio').value = currentUser.bio || '';
   document.getElementById('edit-occupation').value = currentUser.occupation || '';
   document.getElementById('edit-interests').value = (currentUser.interests || []).join(', ');
 
+  // Set gender preference to opposite of user's gender (default on login)
+  const prefSelect = document.getElementById('pref-interested-in');
+  if (prefSelect) {
+    const gender = (currentUser.gender || '').toLowerCase();
+    if (gender === 'man') {
+      prefSelect.value = 'women';
+    } else if (gender === 'woman') {
+      prefSelect.value = 'men';
+    } else {
+      // non-binary or unknown — default to everyone
+      prefSelect.value = 'everyone';
+    }
+  }
+
   liveUpdateProfile();
-  
-  // ←←← THIS IS THE IMPORTANT LINE
-  renderUserPhotos();   
+
+  // Render user's own uploaded photos (profile-main-avatar + photo grid)
+  renderUserPhotos();
 
   // Stats
   document.getElementById('stat-likes').textContent = currentUser.stats?.likes || Math.floor(Math.random()*50+10);
@@ -1690,12 +1715,24 @@ function loadProfile() {
    ============================================================ */
 function renderUserPhotos() {
   const slots = document.querySelectorAll('.photo-slot');
-  
+  const mainAvatar = document.getElementById('profile-main-avatar');
+
   // Reset all slots to default
   slots.forEach((slot, index) => {
     slot.innerHTML = '+';
     slot.onclick = () => triggerPhotoUpload(index);
   });
+
+  // Always update the main profile avatar to the user's OWN first photo (unique per user)
+  const mainPhoto = currentUser?.photos?.[0];
+  if (mainAvatar) {
+    if (mainPhoto) {
+      mainAvatar.innerHTML = `<img src="${mainPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else {
+      // Default placeholder SVG
+      mainAvatar.innerHTML = `<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="15" r="7" fill="#CBD5E1"/><path d="M6 38c0-7.7 6.3-14 14-14s14 6.3 14 14" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/></svg>`;
+    }
+  }
 
   if (!currentUser?.photos || currentUser.photos.length === 0) {
     return;
@@ -1857,7 +1894,21 @@ function toggleSetting(btn) { btn.classList.toggle('on'); }
    ============================================================ */
 async function loadProfiles() {
   const res = await apiCall('/discover');
-  profiles = (res && res.profiles) ? res.profiles : [...MOCK_PROFILES];
+  let allProfiles = (res && res.profiles) ? res.profiles : [...MOCK_PROFILES];
+
+  // Filter profiles to match the logged-in user's gender preference
+  if (currentUser) {
+    const preference = (document.getElementById('pref-interested-in')?.value || '').toLowerCase();
+    if (preference && preference !== 'everyone') {
+      // preference is 'women' or 'men', profile.gender is 'woman' or 'man'
+      const preferredGender = preference === 'women' ? 'woman' : 'man';
+      allProfiles = allProfiles.filter(p => (p.gender || '').toLowerCase() === preferredGender);
+    }
+    // Also exclude the current user's own profile if present
+    allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
+  }
+
+  profiles = allProfiles;
   currentCardIndex = 0;
   renderCardStack();
 }
