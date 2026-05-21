@@ -1465,6 +1465,17 @@ body {
    CONFIG
    ============================================================ */
 const API_BASE = 'https://maymaybackend.onrender.com/api';
+  
+// At the top of your script, after const API_BASE = ...
+function apiCall(endpoint, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
+  if (body) opts.body = JSON.stringify(body);
+
+  return fetch(API_BASE + endpoint, opts)
+    .then(res => res.ok ? res.json() : null)
+    .catch(() => null); // Graceful fallback
+}
 const CLOUDINARY_BASE = 'https://res.cloudinary.com/dksjbglms/image/upload';
 
 // Cloudinary sample images from your account (samples folder)
@@ -1912,56 +1923,42 @@ function toggleSetting(btn) { btn.classList.toggle('on'); }
 /* ============================================================
    PROFILES / CARD STACK
    ============================================================ */
+// Improved loadProfiles with better fallback
 async function loadProfiles() {
-  console.log('%c🔄 [loadProfiles] Starting...', 'color: #2563EB; font-weight: bold');
-
+  let allProfiles = [];
   try {
     const res = await apiCall('/discover');
-    console.log('📡 Discover Response:', res);
-
-    let allProfiles = [];
-
-    if (res && Array.isArray(res.profiles)) {
-      allProfiles = res.profiles;
-      console.log(`✅ Backend returned ${allProfiles.length} profiles`);
-    } else {
-      console.warn('⚠️ Backend did not return profiles array:', res);
-      allProfiles = [...MOCK_PROFILES];
-    }
-
-    // Client-side filtering
-    if (currentUser) {
-      const pref = (document.getElementById('pref-interested-in')?.value || 'everyone').toLowerCase();
-      console.log(`🎯 Preference: ${pref}`);
-
-      if (pref !== 'everyone') {
-        const targetGender = pref === 'women' ? 'woman' : 'man';
-        allProfiles = allProfiles.filter(p => 
-          (p.gender || '').toString().toLowerCase() === targetGender
-        );
-      }
-
-      allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
-    }
-
-    if (allProfiles.length === 0) {
-      console.warn('⚠️ No profiles after filtering → using mocks');
-      allProfiles = [...MOCK_PROFILES];
-    }
-
-    profiles = allProfiles;
-    currentCardIndex = 0;
-    renderCardStack();
-
-    console.log(`🎉 Final card stack: ${profiles.length} profiles`);
-
-  } catch (err) {
-    console.error('❌ loadProfiles failed:', err);
-    showToast('Server connection issue. Using demo profiles.', 'error');
-    profiles = [...MOCK_PROFILES];
-    currentCardIndex = 0;
-    renderCardStack();
+    if (res && res.profiles) allProfiles = res.profiles;
+  } catch (e) {
+    console.warn('API unavailable, using mock data');
   }
+
+  if (allProfiles.length === 0) {
+    allProfiles = [...MOCK_PROFILES];
+  }
+
+  // Filter logic (existing)
+  if (currentUser) {
+    const preference = (document.getElementById('pref-interested-in')?.value || 'everyone').toLowerCase();
+    if (preference !== 'everyone') {
+      const preferredGender = preference === 'women' ? 'woman' : 'man';
+      allProfiles = allProfiles.filter(p => (p.gender || '').toLowerCase() === preferredGender);
+    }
+    allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
+  }
+
+  profiles = allProfiles;
+  currentCardIndex = 0;
+  renderCardStack();
+}
+
+// Ensure we start on Discover after login
+function initApp() {
+  loadProfile();
+  switchPanel('discover');           // ← Important
+  loadMatches();
+  loadConversations();
+  updateBadges();
 }
 
    
