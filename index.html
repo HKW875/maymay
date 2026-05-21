@@ -1667,7 +1667,9 @@ function handleLogout() {
    APP INIT
    ============================================================ */
 function initApp() {
-  loadProfile(); loadProfiles(); loadMatches(); loadConversations(); updateBadges();
+  loadProfile(); loadMatches(); loadConversations(); updateBadges();
+  // loadProfiles() is called at the end of loadProfile() so that
+  // the gender-preference dropdown is set BEFORE profiles are filtered.
 }
 
 /* ============================================================
@@ -1685,19 +1687,26 @@ function loadProfile() {
   document.getElementById('edit-occupation').value = currentUser.occupation || '';
   document.getElementById('edit-interests').value = (currentUser.interests || []).join(', ');
 
-  // Set gender preference to opposite of user's gender (default on login)
+  // Set gender preference: use saved interestedIn from user profile if present,
+  // otherwise derive a sensible default from the user's own gender.
   const prefSelect = document.getElementById('pref-interested-in');
   if (prefSelect) {
-    const gender = (currentUser.gender || '').toLowerCase();
-    if (gender === 'man') {
-      prefSelect.value = 'women';
-    } else if (gender === 'woman') {
-      prefSelect.value = 'men';
+    if (currentUser.interestedIn && ['women','men','everyone'].includes(currentUser.interestedIn)) {
+      prefSelect.value = currentUser.interestedIn;
     } else {
-      // non-binary or unknown — default to everyone
-      prefSelect.value = 'everyone';
+      const gender = (currentUser.gender || '').toLowerCase();
+      if (gender === 'man') {
+        prefSelect.value = 'women';
+      } else if (gender === 'woman') {
+        prefSelect.value = 'men';
+      } else {
+        prefSelect.value = 'everyone';
+      }
     }
   }
+
+  // NOW load profiles — the preference dropdown is correctly set at this point.
+  loadProfiles();
 
   liveUpdateProfile();
 
