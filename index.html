@@ -1097,6 +1097,15 @@ body {
         </select>
       </div>
       <div class="form-group">
+        <label>Interested In</label>
+        <select id="reg-interested-in">
+          <option value="">Select...</option>
+          <option value="men">Man</option>
+          <option value="women">Woman</option>
+          <option value="everyone">Non Binary</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Country</label>
         <select id="reg-country">
           <option value="">Select country...</option>
@@ -1637,11 +1646,12 @@ async function handleRegister() {
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
   const gender = document.getElementById('reg-gender').value;
+  const interestedIn = document.getElementById('reg-interested-in').value;
   const country = document.getElementById('reg-country').value;
-  if (!name || !age || !email || !password || !gender || !country) return showToast('Please fill in all fields', 'error');
+  if (!name || !age || !email || !password || !gender || !interestedIn || !country) return showToast('Please fill in all fields', 'error');
   if (age < 18) return showToast('You must be 18 or older to join', 'error');
   if (password.length < 8) return showToast('Password must be at least 8 characters', 'error');
-  const res = await apiCall('/auth/register', 'POST', { name, age, email, password, gender, country });
+  const res = await apiCall('/auth/register', 'POST', { name, age, email, password, gender, interestedIn, country });
   if (res && res.token) {
     authToken = res.token; currentUser = res.user;
     isDemoMode = false;
