@@ -1911,26 +1911,76 @@ function toggleSetting(btn) { btn.classList.toggle('on'); }
 /* ============================================================
    PROFILES / CARD STACK
    ============================================================ */
+/* ============================================================
+   PROFILES / CARD STACK — IMPROVED
+   ============================================================ */
 async function loadProfiles() {
-  const res = await apiCall('/discover');
-  let allProfiles = (res && res.profiles) ? res.profiles : [...MOCK_PROFILES];
+  console.log('%c🔄 Loading profiles...', 'color: #3B82F6; font-weight: 600;');
 
-  // Filter profiles to match the logged-in user's gender preference
-  if (currentUser) {
-    const preference = (document.getElementById('pref-interested-in')?.value || '').toLowerCase();
-    if (preference && preference !== 'everyone') {
-      // preference is 'women' or 'men', profile.gender is 'woman' or 'man'
-      const preferredGender = preference === 'women' ? 'woman' : 'man';
-      allProfiles = allProfiles.filter(p => (p.gender || '').toLowerCase() === preferredGender);
+  try {
+    const res = await apiCall('/discover');
+    console.log('📡 Discover API Response:', res);
+
+    let allProfiles = [];
+
+    // Priority 1: Use real data from backend
+    if (res && Array.isArray(res.profiles) && res.profiles.length > 0) {
+      allProfiles = res.profiles;
+      console.log(`✅ Loaded ${allProfiles.length} profiles from backend`);
+    } 
+    // Priority 2: Fallback to mock data if backend returns empty or fails
+    else {
+      console.warn('⚠️ Backend returned no profiles. Using mock data as fallback.');
+      allProfiles = [...MOCK_PROFILES];
     }
-    // Also exclude the current user's own profile if present
-    allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
-  }
 
-  profiles = allProfiles;
-  currentCardIndex = 0;
-  renderCardStack();
+    // === Client-side filtering based on user preference ===
+    if (currentUser) {
+      const preferenceSelect = document.getElementById('pref-interested-in');
+      const preference = preferenceSelect ? preferenceSelect.value.toLowerCase() : 'everyone';
+
+      console.log(`🎯 User preference: ${preference}`);
+
+      if (preference && preference !== 'everyone') {
+        const preferredGender = preference === 'women' ? 'woman' : 'man';
+        
+        allProfiles = allProfiles.filter(p => {
+          const profileGender = (p.gender || '').toString().toLowerCase();
+          return profileGender === preferredGender;
+        });
+
+        console.log(`Filtered to ${preferredGender}: ${allProfiles.length} profiles remaining`);
+      }
+
+      // Exclude self
+      allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
+    }
+
+    // Final safety net: If still empty, force mock data
+    if (allProfiles.length === 0) {
+      console.warn('⚠️ No profiles after all filtering. Forcing mock data.');
+      allProfiles = [...MOCK_PROFILES];
+    }
+
+    // Update global state
+    profiles = allProfiles;
+    currentCardIndex = 0;
+
+    console.log(`🎉 Final profiles ready: ${profiles.length}`);
+    renderCardStack();
+
+  } catch (error) {
+    console.error('❌ loadProfiles() failed:', error);
+    showToast('Could not load profiles from server. Showing demo profiles.', 'info');
+    
+    // Emergency fallback
+    profiles = [...MOCK_PROFILES];
+    currentCardIndex = 0;
+    renderCardStack();
+  }
 }
+
+   
 function renderCardStack() {
   const stack = document.getElementById('card-stack');
   stack.innerHTML = '';
