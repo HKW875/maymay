@@ -1733,10 +1733,13 @@ async function handlePhotoUpload(e) {
   reader.readAsDataURL(file);
   // Upload to backend -> Cloudinary -> URL saved in MongoDB
   try {
+    if (!authToken) {
+      showToast(isDemoMode ? 'Sign in to upload photos' : 'Session expired — please log in again', 'error');
+      return;
+    }
     const formData = new FormData();
     formData.append('photo', file);
-    const headers = {};
-    if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    const headers = { 'Authorization': 'Bearer ' + authToken };
     const res = await fetch(API_BASE + '/upload', { method: 'POST', headers, body: formData });
     const data = await res.json();
     const url = data.url || data.secure_url;
