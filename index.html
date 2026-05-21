@@ -1666,17 +1666,52 @@ function initApp() {
    ============================================================ */
 function loadProfile() {
   if (!currentUser) return;
+
   document.getElementById('edit-name').value = currentUser.name || '';
   document.getElementById('edit-age').value = currentUser.age || '';
   document.getElementById('edit-location').value = currentUser.location || '';
   document.getElementById('edit-bio').value = currentUser.bio || '';
   document.getElementById('edit-occupation').value = currentUser.occupation || '';
   document.getElementById('edit-interests').value = (currentUser.interests || []).join(', ');
+
   liveUpdateProfile();
+  
+  // ←←← THIS IS THE IMPORTANT LINE
+  renderUserPhotos();   
+
+  // Stats
   document.getElementById('stat-likes').textContent = currentUser.stats?.likes || Math.floor(Math.random()*50+10);
   document.getElementById('stat-matches').textContent = currentUser.stats?.matches || myMatches.length || 3;
   document.getElementById('stat-views').textContent = currentUser.stats?.views || Math.floor(Math.random()*200+50);
 }
+
+/* ============================================================
+   PROFILE PHOTOS
+   ============================================================ */
+function renderUserPhotos() {
+  const slots = document.querySelectorAll('.photo-slot');
+  
+  // Reset all slots to default
+  slots.forEach((slot, index) => {
+    slot.innerHTML = '+';
+    slot.onclick = () => triggerPhotoUpload(index);
+  });
+
+  if (!currentUser?.photos || currentUser.photos.length === 0) {
+    return;
+  }
+
+  currentUser.photos.forEach((url, index) => {
+    if (url && slots[index]) {
+      slots[index].innerHTML = `
+        <img src="${url}" style="width:100%; height:100%; object-fit:cover;" 
+             onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/ddd/666?text=Image+Error'">
+        <button class="delete-photo" onclick="deletePhoto(event,${index},'${url}')">✕</button>
+      `;
+    }
+  });
+}
+   
 function liveUpdateProfile() {
   document.getElementById('display-name').textContent = document.getElementById('edit-name').value || 'Your Name';
   document.getElementById('display-age').textContent = document.getElementById('edit-age').value || '—';
@@ -1732,18 +1767,33 @@ async function handlePhotoUpload(e) {
     const res = await fetch(API_BASE + '/upload', { method: 'POST', headers, body: formData });
     const data = await res.json();
     const url = data.url || data.secure_url;
+     
     if (url) {
       if (activePhotoSlot === 'main') {
         document.getElementById('profile-main-avatar').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-        if (currentUser) { currentUser.photos = currentUser.photos || []; currentUser.photos[0] = url; localStorage.setItem('zawadi_user', JSON.stringify(currentUser)); }
+        if (currentUser) { 
+          currentUser.photos = currentUser.photos || []; 
+          currentUser.photos[0] = url; 
+        }
       } else if (activePhotoSlot !== null) {
         const slots = document.querySelectorAll('.photo-slot');
         if (slots[activePhotoSlot]) {
-          slots[activePhotoSlot].innerHTML = `<img src="${url}"><button class="delete-photo" onclick="deletePhoto(event,${activePhotoSlot},'${url}')">&#x2715;</button>`;
+          slots[activePhotoSlot].innerHTML = `
+            <img src="${url}" style="width:100%;height:100%;object-fit:cover">
+            <button class="delete-photo" onclick="deletePhoto(event,${activePhotoSlot},'${url}')">✕</button>
+          `;
         }
-        if (currentUser) { currentUser.photos = currentUser.photos || []; currentUser.photos[activePhotoSlot] = url; localStorage.setItem('zawadi_user', JSON.stringify(currentUser)); }
+        if (currentUser) { 
+          currentUser.photos = currentUser.photos || []; 
+          currentUser.photos[activePhotoSlot] = url; 
+        }
       }
+      localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
+      renderUserPhotos();        // ← Refresh grid
       showToast('Photo uploaded!', 'success');
+    }
+
+     
     } else {
       showToast(data.error || 'Upload failed', 'error');
       if (activePhotoSlot !== null && activePhotoSlot !== 'main') { const s = document.querySelectorAll('.photo-slot'); if (s[activePhotoSlot]) { s[activePhotoSlot].innerHTML = '+'; s[activePhotoSlot].onclick = () => triggerPhotoUpload(activePhotoSlot); } }
