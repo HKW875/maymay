@@ -1542,7 +1542,6 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 async function apiCall(endpoint, method = 'GET', body = null) {
-  if (isDemoMode) return null; // skip real API calls; callers fall back to mock data
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
   if (body) opts.body = JSON.stringify(body);
@@ -1570,12 +1569,12 @@ async function apiCall(endpoint, method = 'GET', body = null) {
           isDemoMode = false;
           currentUser = JSON.parse(localStorage.getItem('zawadi_user') || '{}');
           initApp(); showScreen('app');
-        } else if (saved === 'demo-token') {
-          isDemoMode = true;
-          authToken = null;
-          currentUser = JSON.parse(localStorage.getItem('zawadi_user') || '{}');
-          initApp(); showScreen('app');
         } else {
+          // Clear any stale demo-token that may have been saved by older code
+          if (saved === 'demo-token') {
+            localStorage.removeItem('zawadi_token');
+            localStorage.removeItem('zawadi_user');
+          }
           const seenOnboard = localStorage.getItem('zawadi_onboarded');
           showScreen(seenOnboard ? 'auth' : 'onboarding');
         }
@@ -1616,18 +1615,13 @@ async function handleLogin() {
   const res = await apiCall('/auth/login', 'POST', { email, password });
   if (res && res.token) {
     authToken = res.token; currentUser = res.user;
+    isDemoMode = false;
     localStorage.setItem('zawadi_token', authToken);
     localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
     initApp(); showScreen('app');
     showToast(`Welcome back, ${currentUser.name}!`, 'success');
   } else {
-    currentUser = { _id:'demo', name: email.split('@')[0] || 'You', age:30, location:'Nairobi', bio:'', interests:[] };
-    isDemoMode = true;
-    authToken = null;
-    localStorage.removeItem('zawadi_token');  // never persist demo-token
-    localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
-    initApp(); showScreen('app');
-    showToast('Signed in (demo mode)', 'success');
+    showToast(res?.error || 'Invalid email or password. Please try again.', 'error');
   }
 }
 async function handleRegister() {
@@ -1643,18 +1637,13 @@ async function handleRegister() {
   const res = await apiCall('/auth/register', 'POST', { name, age, email, password, gender, country });
   if (res && res.token) {
     authToken = res.token; currentUser = res.user;
+    isDemoMode = false;
     localStorage.setItem('zawadi_token', authToken);
     localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
     initApp(); showScreen('app');
     showToast(`Welcome to Zawadi, ${name}!`, 'success');
   } else {
-    currentUser = { _id:'demo', name, age, location: country, bio:'', gender, interests:[] };
-    isDemoMode = true;
-    authToken = null;
-    localStorage.removeItem('zawadi_token');  // never persist demo-token
-    localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
-    initApp(); showScreen('app');
-    showToast(`Welcome to Zawadi, ${name}!`, 'success');
+    showToast(res?.error || 'Registration failed. Please check your details and try again.', 'error');
   }
 }
 function handleLogout() {
@@ -1734,7 +1723,7 @@ async function handlePhotoUpload(e) {
   // Upload to backend -> Cloudinary -> URL saved in MongoDB
   try {
     if (!authToken) {
-      showToast(isDemoMode ? 'Sign in to upload photos' : 'Session expired — please log in again', 'error');
+      showToast('Session expired — please log in again', 'error');
       return;
     }
     const formData = new FormData();
