@@ -1561,10 +1561,17 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
   if (body) opts.body = JSON.stringify(body);
+
   try {
     const res = await fetch(API_BASE + endpoint, opts);
+    if (!res.ok) {
+      console.warn(`API ${endpoint} returned ${res.status}`);
+    }
     return await res.json();
-  } catch (e) { return null; }
+  } catch (e) {
+    console.error(`API call failed: ${endpoint}`, e);
+    return null;
+  }
 }
 
 /* ============================================================
