@@ -1741,68 +1741,102 @@ function triggerPhotoUpload(slot) {
 async function handlePhotoUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
+
+  const activeSlot = activePhotoSlot; // capture value in case it changes
+
   // Show local preview immediately
   const reader = new FileReader();
   reader.onload = (ev) => {
     const src = ev.target.result;
-    if (activePhotoSlot === 'main') {
-      document.getElementById('profile-main-avatar').innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    } else if (activePhotoSlot !== null) {
+
+    if (activeSlot === 'main') {
+      document.getElementById('profile-main-avatar').innerHTML = 
+        `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else if (activeSlot !== null) {
       const slots = document.querySelectorAll('.photo-slot');
-      if (slots[activePhotoSlot]) {
-        slots[activePhotoSlot].innerHTML = `<img src="${src}"><span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:2px 6px;border-radius:5px">Uploading…</span>`;
+      if (slots[activeSlot]) {
+        slots[activeSlot].innerHTML = `
+          <img src="${src}" style="width:100%;height:100%;object-fit:cover">
+          <span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:2px 6px;border-radius:5px">Uploading…</span>
+        `;
       }
     }
   };
   reader.readAsDataURL(file);
-  // Upload to backend -> Cloudinary -> URL saved in MongoDB
+
+  // Upload to backend
   try {
     if (!authToken) {
       showToast('Session expired — please log in again', 'error');
       return;
     }
+
     const formData = new FormData();
     formData.append('photo', file);
-    const headers = { 'Authorization': 'Bearer ' + authToken };
-    const res = await fetch(API_BASE + '/upload', { method: 'POST', headers, body: formData });
+
+    const res = await fetch(API_BASE + '/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + authToken },
+      body: formData
+    });
+
     const data = await res.json();
     const url = data.url || data.secure_url;
-     
+
     if (url) {
-      if (activePhotoSlot === 'main') {
-        document.getElementById('profile-main-avatar').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-        if (currentUser) { 
-          currentUser.photos = currentUser.photos || []; 
-          currentUser.photos[0] = url; 
+      // Success - update UI with final URL
+      if (activeSlot === 'main') {
+        document.getElementById('profile-main-avatar').innerHTML = 
+          `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+
+        if (currentUser) {
+          currentUser.photos = currentUser.photos || [];
+          currentUser.photos[0] = url;
         }
-      } else if (activePhotoSlot !== null) {
+      } else if (activeSlot !== null) {
         const slots = document.querySelectorAll('.photo-slot');
-        if (slots[activePhotoSlot]) {
-          slots[activePhotoSlot].innerHTML = `
+        if (slots[activeSlot]) {
+          slots[activeSlot].innerHTML = `
             <img src="${url}" style="width:100%;height:100%;object-fit:cover">
-            <button class="delete-photo" onclick="deletePhoto(event,${activePhotoSlot},'${url}')">✕</button>
+            <button class="delete-photo" onclick="deletePhoto(event,${activeSlot},'${url}')">✕</button>
           `;
         }
-        if (currentUser) { 
-          currentUser.photos = currentUser.photos || []; 
-          currentUser.photos[activePhotoSlot] = url; 
+
+        if (currentUser) {
+          currentUser.photos = currentUser.photos || [];
+          currentUser.photos[activeSlot] = url;
         }
       }
+
       localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
-      renderUserPhotos();        // ← Refresh grid
+      renderUserPhotos();
       showToast('Photo uploaded!', 'success');
+
+    } else {
+      // Backend returned no URL
+      showToast(data.error || 'Upload failed', 'error');
+      resetSlotToPlaceholder(activeSlot);
     }
 
-     
-    } else {
-      showToast(data.error || 'Upload failed', 'error');
-      if (activePhotoSlot !== null && activePhotoSlot !== 'main') { const s = document.querySelectorAll('.photo-slot'); if (s[activePhotoSlot]) { s[activePhotoSlot].innerHTML = '+'; s[activePhotoSlot].onclick = () => triggerPhotoUpload(activePhotoSlot); } }
-    }
   } catch (err) {
+    console.error('Photo upload error:', err);
     showToast('Upload failed — check connection', 'error');
-    if (activePhotoSlot !== null && activePhotoSlot !== 'main') { const s = document.querySelectorAll('.photo-slot'); if (s[activePhotoSlot]) { s[activePhotoSlot].innerHTML = '+'; s[activePhotoSlot].onclick = () => triggerPhotoUpload(activePhotoSlot); } }
+    resetSlotToPlaceholder(activeSlot);
   }
+
+  // Clear input so same file can be selected again
   e.target.value = '';
+}
+
+// Helper function to avoid code duplication
+function resetSlotToPlaceholder(slot) {
+  if (slot === null || slot === 'main') return;
+
+  const slots = document.querySelectorAll('.photo-slot');
+  if (slots[slot]) {
+    slots[slot].innerHTML = '+';
+    slots[slot].onclick = () => triggerPhotoUpload(slot);
+  }
 }
 async function deletePhoto(e, slot, url) {
   e.stopPropagation();
