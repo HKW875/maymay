@@ -1912,69 +1912,52 @@ function toggleSetting(btn) { btn.classList.toggle('on'); }
 /* ============================================================
    PROFILES / CARD STACK
    ============================================================ */
-/* ============================================================
-   PROFILES / CARD STACK — IMPROVED
-   ============================================================ */
 async function loadProfiles() {
-  console.log('%c🔄 Loading profiles...', 'color: #3B82F6; font-weight: 600;');
+  console.log('%c🔄 [loadProfiles] Starting...', 'color: #2563EB; font-weight: bold');
 
   try {
     const res = await apiCall('/discover');
-    console.log('📡 Discover API Response:', res);
+    console.log('📡 Discover Response:', res);
 
     let allProfiles = [];
 
-    // Priority 1: Use real data from backend
-    if (res && Array.isArray(res.profiles) && res.profiles.length > 0) {
+    if (res && Array.isArray(res.profiles)) {
       allProfiles = res.profiles;
-      console.log(`✅ Loaded ${allProfiles.length} profiles from backend`);
-    } 
-    // Priority 2: Fallback to mock data if backend returns empty or fails
-    else {
-      console.warn('⚠️ Backend returned no profiles. Using mock data as fallback.');
+      console.log(`✅ Backend returned ${allProfiles.length} profiles`);
+    } else {
+      console.warn('⚠️ Backend did not return profiles array:', res);
       allProfiles = [...MOCK_PROFILES];
     }
 
-    // === Client-side filtering based on user preference ===
+    // Client-side filtering
     if (currentUser) {
-      const preferenceSelect = document.getElementById('pref-interested-in');
-      const preference = preferenceSelect ? preferenceSelect.value.toLowerCase() : 'everyone';
+      const pref = (document.getElementById('pref-interested-in')?.value || 'everyone').toLowerCase();
+      console.log(`🎯 Preference: ${pref}`);
 
-      console.log(`🎯 User preference: ${preference}`);
-
-      if (preference && preference !== 'everyone') {
-        const preferredGender = preference === 'women' ? 'woman' : 'man';
-        
-        allProfiles = allProfiles.filter(p => {
-          const profileGender = (p.gender || '').toString().toLowerCase();
-          return profileGender === preferredGender;
-        });
-
-        console.log(`Filtered to ${preferredGender}: ${allProfiles.length} profiles remaining`);
+      if (pref !== 'everyone') {
+        const targetGender = pref === 'women' ? 'woman' : 'man';
+        allProfiles = allProfiles.filter(p => 
+          (p.gender || '').toString().toLowerCase() === targetGender
+        );
       }
 
-      // Exclude self
       allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
     }
 
-    // Final safety net: If still empty, force mock data
     if (allProfiles.length === 0) {
-      console.warn('⚠️ No profiles after all filtering. Forcing mock data.');
+      console.warn('⚠️ No profiles after filtering → using mocks');
       allProfiles = [...MOCK_PROFILES];
     }
 
-    // Update global state
     profiles = allProfiles;
     currentCardIndex = 0;
-
-    console.log(`🎉 Final profiles ready: ${profiles.length}`);
     renderCardStack();
 
-  } catch (error) {
-    console.error('❌ loadProfiles() failed:', error);
-    showToast('Could not load profiles from server. Showing demo profiles.', 'info');
-    
-    // Emergency fallback
+    console.log(`🎉 Final card stack: ${profiles.length} profiles`);
+
+  } catch (err) {
+    console.error('❌ loadProfiles failed:', err);
+    showToast('Server connection issue. Using demo profiles.', 'error');
     profiles = [...MOCK_PROFILES];
     currentCardIndex = 0;
     renderCardStack();
