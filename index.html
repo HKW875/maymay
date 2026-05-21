@@ -1460,6 +1460,98 @@ body {
 <!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- ====================== MAIN APP ====================== -->
+<div id="screen-app" class="screen">
+  <!-- Sidebar Navigation -->
+  <div class="app-nav">
+    <div class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 14h30l-22 26h24" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <button class="nav-btn active" id="nav-discover" onclick="switchPanel('discover')">🔥</button>
+    <button class="nav-btn" id="nav-matches" onclick="switchPanel('matches')">❤️<span class="nav-badge" id="matches-badge">0</span></button>
+    <button class="nav-btn" id="nav-messages" onclick="switchPanel('messages')">💬<span class="nav-badge" id="msg-badge">0</span></button>
+    <button class="nav-btn" id="nav-profile" onclick="switchPanel('profile')">👤</button>
+    <div class="nav-spacer"></div>
+    <button class="nav-btn" onclick="handleLogout()">⏻</button>
+  </div>
+
+  <div class="app-content">
+    <!-- DISCOVER PANEL -->
+    <div id="panel-discover" class="panel active">
+      <div class="discover-header">
+        <h2>Discover</h2>
+        <div class="discover-filters">
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip" onclick="openFiltersModal()">Filters</div>
+        </div>
+      </div>
+      
+      <div class="card-arena">
+        <div class="card-stack" id="card-stack"></div>
+      </div>
+
+      <div class="card-actions">
+        <button class="action-btn action-btn-sm" onclick="rewindCard()">⟳</button>
+        <button class="action-btn action-btn-nope" onclick="swipeCard('left')">✕</button>
+        <button class="action-btn action-btn-super" onclick="superLike()">★</button>
+        <button class="action-btn action-btn-like" onclick="swipeCard('right')">♥</button>
+        <button class="action-btn action-btn-sm" onclick="boostProfile()">⚡</button>
+      </div>
+    </div>
+
+    <!-- MATCHES PANEL -->
+    <div id="panel-matches" class="panel">
+      <div class="matches-header">
+        <h2>Matches</h2>
+        <p>People you connected with</p>
+      </div>
+      <div class="matches-new">
+        <h3>New Matches</h3>
+        <div class="matches-new-scroll" id="new-matches-scroll"></div>
+      </div>
+      <div class="matches-list" id="matches-list"></div>
+    </div>
+
+    <!-- MESSAGES PANEL -->
+    <div id="panel-messages" class="panel">
+      <div class="chat-layout">
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-header">
+            <h2>Messages</h2>
+            <div class="chat-search">
+              <input type="text" placeholder="Search..." onkeyup="filterChats(this.value)">
+            </div>
+          </div>
+          <div class="chat-list" id="chat-list"></div>
+        </div>
+        <div class="chat-window" id="chat-window">
+          <div class="chat-empty">
+            <div class="chat-empty-icon">💬</div>
+            <h3>Select a match</h3>
+            <p>Start chatting with your matches</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE PANEL (basic) -->
+    <div id="panel-profile" class="panel">
+      <div class="profile-panel">
+        <div style="text-align:center; padding:40px;">
+          <h2>Profile Panel</h2>
+          <p>Profile editing coming soon...</p>
+          <button class="btn btn-primary" onclick="switchPanel('discover')">Back to Discover</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for photos -->
+<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+
 <script>
 /* ============================================================
    CONFIG
@@ -1688,7 +1780,7 @@ function handleLogout() {
    APP INIT
    ============================================================ */
 function initApp() {
-  loadProfile(); loadMatches(); loadConversations(); updateBadges();
+  loadProfile(); switchPanel('discover'); loadMatches(); loadConversations(); updateBadges();
   // loadProfiles() is called at the end of loadProfile() so that
   // the gender-preference dropdown is set BEFORE profiles are filtered.
 }
