@@ -1542,13 +1542,30 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 async function apiCall(endpoint, method = 'GET', body = null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const opts = { 
+    method, 
+    headers: { 'Content-Type': 'application/json' } 
+  };
   if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
   if (body) opts.body = JSON.stringify(body);
+
   try {
+    console.log(`API Call: ${method} ${API_BASE}${endpoint}`, body); // ← Add this
     const res = await fetch(API_BASE + endpoint, opts);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`API Error ${res.status}:`, errorText);
+      showToast(`Server error (${res.status})`, 'error');
+      return { error: errorText || 'Server error' };
+    }
+    
     return await res.json();
-  } catch (e) { return null; }
+  } catch (e) {
+    console.error('Fetch failed:', e);
+    showToast('Network error — check connection', 'error');
+    return null;
+  }
 }
 
 /* ============================================================
