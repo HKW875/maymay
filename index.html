@@ -1343,14 +1343,13 @@ body {
               <select id="pref-interested-in">
                 <option value="women">Women</option>
                 <option value="men">Men</option>
-                <option value="everyone">Everyone</option>
               </select>
             </div>
             <div class="profile-field">
               <label>Max Distance</label>
               <select id="pref-distance">
                 <option>10 km</option><option>25 km</option><option>50 km</option>
-                <option selected>100 km</option><option>Worldwide</option>
+                <option>100 km</option><option selected>Worldwide</option>
               </select>
             </div>
           </div>
@@ -1466,11 +1465,65 @@ body {
 <!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- Socket.IO client -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<!-- VIDEO CALL MODAL -->
+<div class="modal-overlay" id="video-call-modal" style="z-index:2000">
+  <div class="modal" style="max-width:680px;padding:0;overflow:hidden;border-radius:20px;position:relative">
+    <div id="video-call-ui" style="background:#0F172A;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;">
+      <!-- Remote video (full size) -->
+      <video id="remote-video" autoplay playsinline style="width:100%;max-height:400px;object-fit:cover;border-radius:0;display:none"></video>
+      <!-- Local video (PiP) -->
+      <video id="local-video" autoplay playsinline muted style="position:absolute;bottom:14px;right:14px;width:110px;height:80px;object-fit:cover;border-radius:12px;border:2px solid rgba(255,255,255,0.3);display:none"></video>
+      <!-- Waiting state -->
+      <div id="call-waiting" style="text-align:center;color:white;padding:40px">
+        <div id="call-avatar-display" style="width:80px;height:80px;border-radius:50%;background:var(--blue-pale);margin:0 auto 16px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="13" r="6" fill="#DBEAFE"/><path d="M5 34c0-7.2 5.8-13 13-13s13 5.8 13 13" stroke="#DBEAFE" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div id="call-status-text" style="font-size:16px;font-weight:600;margin-bottom:6px">Calling…</div>
+        <div id="call-name-text" style="font-size:13px;color:rgba(255,255,255,0.6)"></div>
+      </div>
+      <!-- Call controls -->
+      <div id="call-controls" style="position:absolute;bottom:0;left:0;right:0;padding:18px;display:flex;justify-content:center;gap:18px;background:linear-gradient(transparent,rgba(0,0,0,0.7))">
+        <button onclick="toggleMute()" id="btn-mute" style="width:52px;height:52px;border-radius:50%;border:none;background:rgba(255,255,255,0.2);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s" title="Mute">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2a4 4 0 014 4v5a4 4 0 01-8 0V6a4 4 0 014-4z" stroke="white" stroke-width="2"/><path d="M5 10a6 6 0 0012 0M11 18v3M8 21h6" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button onclick="toggleVideo()" id="btn-video-toggle" style="width:52px;height:52px;border-radius:50%;border:none;background:rgba(255,255,255,0.2);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s" title="Toggle Camera">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1" y="5" width="14" height="12" rx="2" stroke="white" stroke-width="2"/><path d="M15 9.5l6-3v9l-6-3v-3z" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+        <button onclick="endCall()" style="width:52px;height:52px;border-radius:50%;border:none;background:#E11D48;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s" title="End Call">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 7a16.8 16.8 0 0016 0l-2-3a13.4 13.4 0 01-12 0L3 7z" fill="white"/><path d="M3 7l3 4 2-1 2 4 2-1 2 4 3-3-2-3-2 1-2-4-2 1-2-4z" fill="white"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INCOMING CALL BANNER -->
+<div id="incoming-call-banner" style="display:none;position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:3000;background:white;border-radius:16px;padding:16px 22px;box-shadow:0 8px 32px rgba(15,23,42,0.20);display:flex;align-items:center;gap:16px;min-width:280px;border:1px solid var(--border)">
+  <div id="incoming-caller-avatar" style="width:44px;height:44px;border-radius:50%;background:var(--blue-pale);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7" r="4" fill="#DBEAFE"/><path d="M3 20c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="#DBEAFE" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+  <div style="flex:1">
+    <div id="incoming-caller-name" style="font-weight:600;font-size:14px;color:var(--text)">Incoming Video Call</div>
+    <div style="font-size:12px;color:var(--text-muted)">Incoming video call…</div>
+  </div>
+  <button onclick="acceptCall()" style="background:var(--green);color:white;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600">Accept</button>
+  <button onclick="rejectCall()" style="background:var(--rose);color:white;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600">Decline</button>
+</div>
+
+<style>
+#incoming-call-banner { display: none; }
+#incoming-call-banner.visible { display: flex !important; }
+</style>
+
 <script>
 /* ============================================================
    CONFIG
    ============================================================ */
 const API_BASE = 'https://maymaybackend.onrender.com/api';
+const SOCKET_URL = 'https://maymaybackend.onrender.com';
 const CLOUDINARY_BASE = 'https://res.cloudinary.com/dksjbglms/image/upload';
 
 /* ============================================================
@@ -1488,6 +1541,25 @@ let activePhotoSlot = null;
 let onboardingStep = 0;
 let selectedPlan = '1mo';
 
+// Socket.IO
+let socket = null;
+let typingTimer = null;
+
+// WebRTC
+let peerConnection = null;
+let localStream = null;
+let currentCallUserId = null;
+let isMuted = false;
+let isVideoOff = false;
+let incomingCallData = null; // { fromUserId, offer, conversationId }
+
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
+
 /* ============================================================
    REAL DATA ONLY — no mock profiles, matches, or messages
    ============================================================ */
@@ -1504,9 +1576,18 @@ function switchPanel(id) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.getElementById('nav-' + id).classList.add('active');
-  // Reload profiles (with preference filter) when navigating to Discover
   if (id === 'discover') {
-    loadProfiles();
+    loadProfiles(); // uses opposite-gender filter by default
+  }
+  if (id === 'matches') {
+    loadMatches(); // returns opposite-gender matches
+  }
+  if (id === 'messages') {
+    loadConversations();
+  }
+  if (id === 'profile') {
+    // Track that someone viewed their own profile card (only their own — not counted as a "view")
+    // Views only increment when OTHER users view this profile (handled server-side via /api/users/:id/view)
   }
 }
 function showToast(msg, type = 'info', icon = null) {
@@ -1641,6 +1722,8 @@ async function handleRegister() {
   }
 }
 function handleLogout() {
+  if (socket) { socket.disconnect(); socket = null; }
+  endCall(true);
   authToken = null; currentUser = null; isDemoMode = false;
   localStorage.removeItem('zawadi_token');
   localStorage.removeItem('zawadi_user');
@@ -1664,8 +1747,261 @@ async function initApp() {
   loadMatches();
   loadConversations();
   updateBadges();
+  // Connect real-time socket
+  initSocket();
   // loadProfiles() is called at the end of loadProfile() so that
   // the gender-preference dropdown is set BEFORE profiles are filtered.
+}
+
+/* ============================================================
+   SOCKET.IO — Real-time chat + WebRTC signaling
+   ============================================================ */
+function initSocket() {
+  if (socket) { socket.disconnect(); socket = null; }
+  if (!authToken) return;
+
+  socket = io(SOCKET_URL, {
+    auth: { token: authToken },
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+  });
+
+  socket.on('connect', () => {
+    console.log('🔌 Socket connected:', socket.id);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Socket disconnected');
+  });
+
+  // Incoming chat message
+  socket.on('chat:message', (msg) => {
+    // If this message is for the active conversation, render it
+    if (String(msg.conversationId) === String(activeConversation) && String(msg.sender) !== String(currentUser?._id)) {
+      const msgArea = document.getElementById('chat-messages');
+      if (msgArea) {
+        const div = document.createElement('div');
+        div.innerHTML = renderMessage({
+          from: 'them', text: msg.text,
+          time: new Date(msg.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+        });
+        msgArea.appendChild(div.firstElementChild);
+        scrollToBottom();
+      }
+    }
+    // Update last message in sidebar and badges
+    const convo = [...myMatches, ...conversations].find(c => String(c._id) === String(msg.conversationId));
+    if (convo && String(msg.sender) !== String(currentUser?._id)) {
+      convo.lastMessage = msg.text;
+      convo.time = 'just now';
+      if (String(msg.conversationId) !== String(activeConversation)) {
+        convo.unread = (convo.unread || 0) + 1;
+      }
+      renderChatList();
+      updateBadges();
+    }
+  });
+
+  // Typing indicator
+  socket.on('chat:typing', ({ userId, isTyping }) => {
+    const typingEl = document.getElementById('typing-indicator');
+    if (typingEl) typingEl.style.display = isTyping ? 'block' : 'none';
+  });
+
+  // Online/offline presence
+  socket.on('user:online', ({ userId }) => {
+    updateOnlineStatus(userId, true);
+  });
+  socket.on('user:offline', ({ userId }) => {
+    updateOnlineStatus(userId, false);
+  });
+
+  // ── WebRTC signaling ──
+  socket.on('call:incoming', async ({ fromUserId, offer, conversationId }) => {
+    incomingCallData = { fromUserId, offer, conversationId };
+    const match = [...myMatches, ...conversations].find(m =>
+      String(m.userId || m._id) === String(fromUserId) || String(m._id) === String(conversationId)
+    );
+    showIncomingCallBanner(match?.name || 'Someone', match?.photo || match?.photos?.[0]);
+  });
+
+  socket.on('call:answered', async ({ fromUserId, answer }) => {
+    if (!peerConnection) return;
+    try {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      document.getElementById('call-status-text').textContent = 'Connected';
+    } catch (e) { console.error('Answer error', e); }
+  });
+
+  socket.on('call:ice', async ({ candidate }) => {
+    if (peerConnection && candidate) {
+      try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); }
+      catch (e) { console.error('ICE error', e); }
+    }
+  });
+
+  socket.on('call:ended', () => {
+    endCall(true);
+    showToast('Call ended', 'info');
+  });
+
+  socket.on('call:rejected', () => {
+    endCall(true);
+    showToast('Call was declined', 'info');
+  });
+}
+
+function updateOnlineStatus(userId, online) {
+  // Update in data
+  [...myMatches, ...conversations].forEach(c => {
+    if (String(c.userId || c._id) === String(userId)) c.online = online;
+  });
+  // Update UI dot
+  const chatItem = document.querySelector(`[id="chat-item-${userId}"] .online-dot`);
+  // Re-render if needed (lightweight)
+  renderChatList();
+}
+
+/* ============================================================
+   WebRTC VIDEO CALL
+   ============================================================ */
+async function startVideoCall(targetUserId, targetName, targetPhoto) {
+  if (!socket) return showToast('Not connected — please refresh', 'error');
+  currentCallUserId = targetUserId;
+
+  // Get user media
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  } catch (e) {
+    return showToast('Camera/mic access denied. Please allow permissions.', 'error');
+  }
+
+  // Show call UI
+  openCallModal(targetName, targetPhoto, 'Calling…');
+  document.getElementById('local-video').srcObject = localStream;
+  document.getElementById('local-video').style.display = 'block';
+
+  // Create peer connection
+  peerConnection = new RTCPeerConnection(ICE_SERVERS);
+  localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+
+  peerConnection.ontrack = (e) => {
+    const remoteVideo = document.getElementById('remote-video');
+    remoteVideo.srcObject = e.streams[0];
+    remoteVideo.style.display = 'block';
+    document.getElementById('call-waiting').style.display = 'none';
+    document.getElementById('call-status-text').textContent = 'Connected';
+  };
+
+  peerConnection.onicecandidate = ({ candidate }) => {
+    if (candidate) socket.emit('call:ice', { targetUserId, candidate });
+  };
+
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+
+  socket.emit('call:offer', { targetUserId, offer, conversationId: activeConversation });
+}
+
+function showIncomingCallBanner(callerName, callerPhoto) {
+  const banner = document.getElementById('incoming-call-banner');
+  document.getElementById('incoming-caller-name').textContent = callerName + ' is calling';
+  const avatarEl = document.getElementById('incoming-caller-avatar');
+  if (callerPhoto) {
+    avatarEl.innerHTML = `<img src="${callerPhoto}" style="width:100%;height:100%;object-fit:cover">`;
+  }
+  banner.classList.add('visible');
+}
+
+async function acceptCall() {
+  document.getElementById('incoming-call-banner').classList.remove('visible');
+  if (!incomingCallData) return;
+  const { fromUserId, offer } = incomingCallData;
+  currentCallUserId = fromUserId;
+
+  const match = [...myMatches, ...conversations].find(m =>
+    String(m.userId || m._id) === String(fromUserId)
+  );
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  } catch (e) {
+    return showToast('Camera/mic access denied', 'error');
+  }
+
+  openCallModal(match?.name || 'Match', match?.photo || match?.photos?.[0], 'Connected');
+  document.getElementById('local-video').srcObject = localStream;
+  document.getElementById('local-video').style.display = 'block';
+
+  peerConnection = new RTCPeerConnection(ICE_SERVERS);
+  localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+
+  peerConnection.ontrack = (e) => {
+    const rv = document.getElementById('remote-video');
+    rv.srcObject = e.streams[0];
+    rv.style.display = 'block';
+    document.getElementById('call-waiting').style.display = 'none';
+  };
+
+  peerConnection.onicecandidate = ({ candidate }) => {
+    if (candidate) socket.emit('call:ice', { targetUserId: fromUserId, candidate });
+  };
+
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  socket.emit('call:answer', { targetUserId: fromUserId, answer });
+
+  incomingCallData = null;
+}
+
+function rejectCall() {
+  document.getElementById('incoming-call-banner').classList.remove('visible');
+  if (incomingCallData?.fromUserId) {
+    socket?.emit('call:reject', { targetUserId: incomingCallData.fromUserId });
+  }
+  incomingCallData = null;
+}
+
+function endCall(remote = false) {
+  if (!remote && currentCallUserId) {
+    socket?.emit('call:end', { targetUserId: currentCallUserId });
+  }
+  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  const rv = document.getElementById('remote-video');
+  const lv = document.getElementById('local-video');
+  if (rv) { rv.srcObject = null; rv.style.display = 'none'; }
+  if (lv) { lv.srcObject = null; lv.style.display = 'none'; }
+  currentCallUserId = null;
+  closeModal('video-call-modal');
+}
+
+function toggleMute() {
+  if (!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  const btn = document.getElementById('btn-mute');
+  btn.style.background = isMuted ? 'rgba(225,29,72,0.7)' : 'rgba(255,255,255,0.2)';
+}
+
+function toggleVideo() {
+  if (!localStream) return;
+  isVideoOff = !isVideoOff;
+  localStream.getVideoTracks().forEach(t => t.enabled = !isVideoOff);
+  const btn = document.getElementById('btn-video-toggle');
+  btn.style.background = isVideoOff ? 'rgba(225,29,72,0.7)' : 'rgba(255,255,255,0.2)';
+}
+
+function openCallModal(name, photo, status) {
+  document.getElementById('call-name-text').textContent = name;
+  document.getElementById('call-status-text').textContent = status || 'Calling…';
+  document.getElementById('call-waiting').style.display = 'flex';
+  const avatarEl = document.getElementById('call-avatar-display');
+  if (photo) avatarEl.innerHTML = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  document.getElementById('call-waiting').style.flexDirection = 'column';
+  document.getElementById('call-waiting').style.alignItems = 'center';
+  openModal('video-call-modal');
 }
 
 /* ============================================================
@@ -1677,28 +2013,35 @@ function loadProfile() {
   document.getElementById('edit-name').value = currentUser.name || '';
   document.getElementById('edit-age').value = currentUser.age || '';
 
-  // Location and preferences are NOT pre-filled on login — user must enter them fresh
-  document.getElementById('edit-location').value = '';
+  // Location: always pre-fill from DB (MongoDB location field)
+  const savedLocation = currentUser.location || '';
+  document.getElementById('edit-location').value = savedLocation;
+  // Display the saved location immediately
+  document.getElementById('display-location').textContent = savedLocation ? '📍 ' + savedLocation : '📍 Add your location';
+
   document.getElementById('edit-bio').value = currentUser.bio || '';
   document.getElementById('edit-occupation').value = currentUser.occupation || '';
   document.getElementById('edit-interests').value = (currentUser.interests || []).join(', ');
 
-  // Set gender preference: use saved interestedIn from user profile if present,
-  // otherwise derive a sensible default from the user's own gender.
+  // Gender preference: use saved OR default to opposite gender (no "everyone" option)
   const prefSelect = document.getElementById('pref-interested-in');
   if (prefSelect) {
-    if (currentUser.interestedIn && ['women','men','everyone'].includes(currentUser.interestedIn)) {
-      prefSelect.value = currentUser.interestedIn;
+    const gender = (currentUser.gender || '').toLowerCase();
+    // Determine opposite gender default
+    const oppositeGender = gender === 'man' ? 'women' : (gender === 'woman' ? 'men' : 'women');
+    const savedPref = currentUser.interestedIn;
+    // Only accept 'women' or 'men' — never 'everyone' since that option is removed
+    if (savedPref === 'women' || savedPref === 'men') {
+      prefSelect.value = savedPref;
     } else {
-      const gender = (currentUser.gender || '').toLowerCase();
-      if (gender === 'man') {
-        prefSelect.value = 'women';
-      } else if (gender === 'woman') {
-        prefSelect.value = 'men';
-      } else {
-        prefSelect.value = 'everyone';
-      }
+      prefSelect.value = oppositeGender;
     }
+  }
+
+  // Distance: default to Worldwide
+  const distSelect = document.getElementById('pref-distance');
+  if (distSelect) {
+    distSelect.value = 'Worldwide';
   }
 
   // NOW load profiles — the preference dropdown is correctly set at this point.
@@ -1709,10 +2052,10 @@ function loadProfile() {
   // Render user's own uploaded photos (profile-main-avatar + photo grid)
   renderUserPhotos();
 
-  // Stats
-  document.getElementById('stat-likes').textContent = currentUser.stats?.likes || Math.floor(Math.random()*50+10);
-  document.getElementById('stat-matches').textContent = currentUser.stats?.matches || myMatches.length || 3;
-  document.getElementById('stat-views').textContent = currentUser.stats?.views || Math.floor(Math.random()*200+50);
+  // Stats — real values from DB (views starts at 0 for new users)
+  document.getElementById('stat-likes').textContent = currentUser.stats?.likes ?? 0;
+  document.getElementById('stat-matches').textContent = currentUser.stats?.matches ?? myMatches.length ?? 0;
+  document.getElementById('stat-views').textContent = currentUser.stats?.views ?? 0;
 }
 
 /* ============================================================
@@ -1757,7 +2100,11 @@ function renderUserPhotos() {
 function liveUpdateProfile() {
   document.getElementById('display-name').textContent = document.getElementById('edit-name').value || 'Your Name';
   document.getElementById('display-age').textContent = document.getElementById('edit-age').value || '—';
-  document.getElementById('display-location').textContent = '📍 ' + (document.getElementById('edit-location').value || 'Location');
+  // Only update display-location from the edit field if it has content
+  const loc = document.getElementById('edit-location').value;
+  if (loc) {
+    document.getElementById('display-location').textContent = '📍 ' + loc;
+  }
   document.getElementById('display-bio').textContent = document.getElementById('edit-bio').value || 'Add a bio…';
   const interests = document.getElementById('edit-interests').value.split(',').map(s=>s.trim()).filter(Boolean);
   document.getElementById('display-tags').innerHTML = interests.map(i=>`<span class="profile-tag">${i}</span>`).join('');
@@ -1936,6 +2283,20 @@ async function loadProfiles() {
     allProfiles = allProfiles.filter(p => String(p._id) !== String(currentUser._id));
   }
 
+  // Client-side gender filter as an additional safety layer
+  // Default: show only opposite gender
+  const myGender = (currentUser?.gender || '').toLowerCase();
+  const prefEl = document.getElementById('pref-interested-in');
+  const pref = prefEl ? prefEl.value : '';
+  const effectivePref = (pref === 'women' || pref === 'men') ? pref :
+    (myGender === 'man' ? 'women' : (myGender === 'woman' ? 'men' : ''));
+
+  if (effectivePref === 'women') {
+    allProfiles = allProfiles.filter(p => p.gender === 'woman');
+  } else if (effectivePref === 'men') {
+    allProfiles = allProfiles.filter(p => p.gender === 'man');
+  }
+
   profiles = allProfiles;
   currentCardIndex = 0;
   renderCardStack();
@@ -1960,7 +2321,13 @@ function renderCardStack() {
     stack.appendChild(card);
   }
   const topCard = stack.querySelector('.profile-card:first-child');
-  if (topCard) attachDrag(topCard);
+  if (topCard) {
+    attachDrag(topCard);
+    // Track that the top profile was viewed (only the front card counts as a view)
+    if (profiles[currentCardIndex]?._id) {
+      apiCall(`/users/${profiles[currentCardIndex]._id}/view`, 'POST');
+    }
+  }
 }
 function createCard(profile, stackPos) {
   const card = document.createElement('div');
@@ -2041,6 +2408,10 @@ function swipeCard(direction, cardEl) {
     const newTop = stack.querySelector('.profile-card:first-child');
     if (newTop) {
       attachDrag(newTop);
+      // Track view of newly exposed top card
+      if (profiles[currentCardIndex]?._id) {
+        apiCall(`/users/${profiles[currentCardIndex]._id}/view`, 'POST');
+      }
       stack.querySelectorAll('.profile-card').forEach((c, i) => {
         if (i === 0) c.style.transform = '';
         else if (i === 1) c.style.transform = 'rotate(2deg) translateY(8px) scale(0.97)';
@@ -2208,11 +2579,19 @@ async function openChatWith(matchId) {
   if (item) item.classList.add('active');
   const match = [...myMatches, ...conversations].find(m => String(m._id) === String(matchId));
   if (!match) return;
+
+  // Clear unread
+  if (match.unread) { match.unread = 0; updateBadges(); }
+
   activeConversation = matchId;
 
-  // Fetch real messages from the backend
+  // Join socket room for this conversation
+  if (socket) socket.emit('chat:join', matchId);
+
   const win = document.getElementById('chat-window');
   const photoSrc = match.photo || match.photos?.[0];
+  const targetUserId = match.userId || match._id; // the actual user id of the match person
+
   win.innerHTML = `
     <div class="chat-window-header">
       <div class="chat-window-avatar">
@@ -2220,13 +2599,13 @@ async function openChatWith(matchId) {
       </div>
       <div>
         <div class="chat-window-name">${match.name}</div>
-        <div class="chat-window-status">${match.online ? '● Online now' : 'Active recently'}</div>
+        <div class="chat-window-status" id="chat-partner-status">${match.online ? '● Online now' : 'Active recently'}</div>
       </div>
       <div class="chat-window-actions">
-        <button class="chat-icon-btn" onclick="showToast('Video call coming soon!','info')">
+        <button class="chat-icon-btn" title="Video Call" onclick="startVideoCall('${targetUserId}','${match.name}','${photoSrc || ''}')">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="9" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5l5-2v7l-5-2V6.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         </button>
-        <button class="chat-icon-btn" onclick="showToast('Voice call coming soon!','info')">
+        <button class="chat-icon-btn" title="Voice Call" onclick="showToast('Voice call coming soon!','info')">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 1h3l1.5 3.5L6 6a11 11 0 004 4l1.5-1.5L15 10v3c-6.627 0-12-5.373-12-12z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -2234,13 +2613,15 @@ async function openChatWith(matchId) {
     <div class="chat-messages" id="chat-messages">
       <div class="msg-day-divider" style="justify-content:center;font-size:11px;color:var(--text-muted)">Loading messages…</div>
     </div>
+    <div id="typing-indicator" style="display:none;padding:4px 22px;font-size:11px;color:var(--text-muted);font-style:italic">${match.name} is typing…</div>
     <div class="chat-input-area">
       <div class="chat-input-wrap">
         <button class="emoji-btn" onclick="insertEmoji()">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><circle cx="7.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12.5" cy="8.5" r="1" fill="currentColor"/><path d="M7 13s.5 2 3 2 3-2 3-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
         <textarea class="chat-input" id="chat-input-field" placeholder="Type a message…" rows="1"
-          onkeydown="handleChatKey(event)"></textarea>
+          onkeydown="handleChatKey(event)"
+          oninput="emitTyping()"></textarea>
         <button class="emoji-btn" onclick="showToast('Photo sharing coming soon!','info')">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="7" cy="9" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 14l4.5-4 3 3 3-3 5 4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         </button>
@@ -2271,6 +2652,15 @@ async function openChatWith(matchId) {
   scrollToBottom();
 }
 
+function emitTyping() {
+  if (!socket || !activeConversation) return;
+  socket.emit('chat:typing', { conversationId: activeConversation, isTyping: true });
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    socket.emit('chat:typing', { conversationId: activeConversation, isTyping: false });
+  }, 1500);
+}
+
 function renderMessage(msg) {
   const mine = msg.from === 'me';
   return `<div class="msg-group ${mine ? 'mine' : 'theirs'}">
@@ -2287,13 +2677,30 @@ async function sendMessage() {
   field.value = '';
   const msg = { from: 'me', text, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
   const msgArea = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.innerHTML = renderMessage(msg);
-  msgArea.appendChild(div.firstElementChild);
-  scrollToBottom();
+
+  // Remove empty state if present
+  const emptyEl = msgArea?.querySelector('.chat-empty');
+  if (emptyEl) emptyEl.remove();
+
+  if (msgArea) {
+    const div = document.createElement('div');
+    div.innerHTML = renderMessage(msg);
+    msgArea.appendChild(div.firstElementChild);
+    scrollToBottom();
+  }
   const match = [...myMatches, ...conversations].find(m => String(m._id) === String(activeConversation));
   if (match) { match.lastMessage = text; match.time = 'just now'; renderChatList(); renderMatches(); }
-  await apiCall('/messages', 'POST', { conversationId: activeConversation, text });
+
+  // Send via socket for real-time delivery
+  if (socket && socket.connected) {
+    socket.emit('chat:send', { conversationId: activeConversation, text });
+  } else {
+    // Fallback to REST API if socket not connected
+    await apiCall('/messages', 'POST', { conversationId: activeConversation, text });
+  }
+
+  // Stop typing indicator
+  if (socket) socket.emit('chat:typing', { conversationId: activeConversation, isTyping: false });
 }
 
 function scrollToBottom() { const m = document.getElementById('chat-messages'); if (m) m.scrollTop = m.scrollHeight; }
