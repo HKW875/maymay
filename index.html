@@ -6,7 +6,13 @@
 <title>Zawadi — Where Africa Connects</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-
+/* ============================================================
+   ZAWADI DATING APP — MODERN BLUE/GREY/ROSE/PURPLE THEME
+   Deploy: Frontend → GitHub → Cloudflare Pages
+   Backend: Node.js → GitHub → Render.com
+   Database: MongoDB Atlas
+   Cloudinary Cloud: dksjbglms | Cloudflare: maymay.hkw875.workers.dev
+   ============================================================ */
 
 :root {
   /* Modern Core Palette */
@@ -50,7 +56,7 @@
   --shadow-lg:     0 16px 64px rgba(15,23,42,0.12);
   --shadow-blue:   0 8px 32px rgba(37,99,235,0.25);
 
- 
+  --API: 'https://maymay.hkw875.workers.dev';
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1460,124 +1466,12 @@ body {
 <!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
 
-<!-- ====================== MAIN APP ====================== -->
-<div id="screen-app" class="screen">
-  <!-- Sidebar Navigation -->
-  <div class="app-nav">
-    <div class="nav-logo">
-      <svg width="28" height="28" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 14h30l-22 26h24" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <button class="nav-btn active" id="nav-discover" onclick="switchPanel('discover')">🔥</button>
-    <button class="nav-btn" id="nav-matches" onclick="switchPanel('matches')">❤️<span class="nav-badge" id="matches-badge">0</span></button>
-    <button class="nav-btn" id="nav-messages" onclick="switchPanel('messages')">💬<span class="nav-badge" id="msg-badge">0</span></button>
-    <button class="nav-btn" id="nav-profile" onclick="switchPanel('profile')">👤</button>
-    <div class="nav-spacer"></div>
-    <button class="nav-btn" onclick="handleLogout()">⏻</button>
-  </div>
-
-  <div class="app-content">
-    <!-- DISCOVER PANEL -->
-    <div id="panel-discover" class="panel active">
-      <div class="discover-header">
-        <h2>Discover</h2>
-        <div class="discover-filters">
-          <div class="filter-chip active">All</div>
-          <div class="filter-chip" onclick="openFiltersModal()">Filters</div>
-        </div>
-      </div>
-      
-      <div class="card-arena">
-        <div class="card-stack" id="card-stack"></div>
-      </div>
-
-      <div class="card-actions">
-        <button class="action-btn action-btn-sm" onclick="rewindCard()">⟳</button>
-        <button class="action-btn action-btn-nope" onclick="swipeCard('left')">✕</button>
-        <button class="action-btn action-btn-super" onclick="superLike()">★</button>
-        <button class="action-btn action-btn-like" onclick="swipeCard('right')">♥</button>
-        <button class="action-btn action-btn-sm" onclick="boostProfile()">⚡</button>
-      </div>
-    </div>
-
-    <!-- MATCHES PANEL -->
-    <div id="panel-matches" class="panel">
-      <div class="matches-header">
-        <h2>Matches</h2>
-        <p>People you connected with</p>
-      </div>
-      <div class="matches-new">
-        <h3>New Matches</h3>
-        <div class="matches-new-scroll" id="new-matches-scroll"></div>
-      </div>
-      <div class="matches-list" id="matches-list"></div>
-    </div>
-
-    <!-- MESSAGES PANEL -->
-    <div id="panel-messages" class="panel">
-      <div class="chat-layout">
-        <div class="chat-sidebar">
-          <div class="chat-sidebar-header">
-            <h2>Messages</h2>
-            <div class="chat-search">
-              <input type="text" placeholder="Search..." onkeyup="filterChats(this.value)">
-            </div>
-          </div>
-          <div class="chat-list" id="chat-list"></div>
-        </div>
-        <div class="chat-window" id="chat-window">
-          <div class="chat-empty">
-            <div class="chat-empty-icon">💬</div>
-            <h3>Select a match</h3>
-            <p>Start chatting with your matches</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PROFILE PANEL (basic) -->
-    <div id="panel-profile" class="panel">
-      <div class="profile-panel">
-        <div style="text-align:center; padding:40px;">
-          <h2>Profile Panel</h2>
-          <p>Profile editing coming soon...</p>
-          <button class="btn btn-primary" onclick="switchPanel('discover')">Back to Discover</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Hidden file input for photos -->
-<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
-
 <script>
 /* ============================================================
    CONFIG
    ============================================================ */
 const API_BASE = 'https://maymaybackend.onrender.com/api';
-  
-// At the top of your script, after const API_BASE = ...
-function apiCall(endpoint, method = 'GET', body = null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
-  if (body) opts.body = JSON.stringify(body);
-
-  return fetch(API_BASE + endpoint, opts)
-    .then(res => res.ok ? res.json() : null)
-    .catch(() => null); // Graceful fallback
-}
 const CLOUDINARY_BASE = 'https://res.cloudinary.com/dksjbglms/image/upload';
-
-// Cloudinary sample images from your account (samples folder)
-const CLOUDINARY_SAMPLES = [
-  `${CLOUDINARY_BASE}/w_600,h_800,c_fill,g_face/samples/people/smiling-man.jpg`,
-  `${CLOUDINARY_BASE}/w_600,h_800,c_fill,g_face/samples/people/jazz.jpg`,
-  `${CLOUDINARY_BASE}/w_600,h_800,c_fill,g_face/samples/people/kitchen-bar.jpg`,
-  `${CLOUDINARY_BASE}/w_600,h_800,c_fill/samples/landscapes/girl-urban-view.jpg`,
-  `${CLOUDINARY_BASE}/w_600,h_800,c_fill/samples/imagecon-group.jpg`,
-];
 
 /* ============================================================
    STATE
@@ -1595,34 +1489,8 @@ let onboardingStep = 0;
 let selectedPlan = '1mo';
 
 /* ============================================================
-   MOCK DATA
+   REAL DATA ONLY — no mock profiles, matches, or messages
    ============================================================ */
-const MOCK_PROFILES = [
-  { _id:'p1', name:'Amara Diallo', age:26, gender:'woman', location:'Lagos, Nigeria', bio:'Entrepreneur & art lover. Travel is my therapy. 🌍', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263809/samples/bike.jpg'], interests:['Art','Travel','Music','Food'] },
-  { _id:'p2', name:'Zuri Okonkwo', age:24, gender:'woman', location:'Nairobi, Kenya', bio:'Medical student by day, dancer by night 💃', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263828/cld-sample.jpg'], interests:['Dance','Medicine','Poetry'] },
-  { _id:'p3', name:'Nia Mensah', age:28, gender:'woman', location:'Accra, Ghana', bio:'Fashion designer with a soul full of stories. Coffee & sunsets.', photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/upscale-face-1.jpg'], interests:['Fashion','Design','Coffee'] },
-  { _id:'p4', name:'Fatoumata Bah', age:23, gender:'woman', location:'Dakar, Senegal', bio:"Journalist | World traveler | Foodie 🍜", photos:['https://res.cloudinary.com/dksjbglms/image/upload/v1779263826/samples/woman-on-a-football-field.jpg'], interests:['Journalism','Travel','Food'] },
-  { _id:'p5', name:'Adaeze Eze', age:27, gender:'woman', location:'Johannesburg, SA', bio:'Tech entrepreneur building Africa\'s future. 💻', photos:[CLOUDINARY_SAMPLES[4]], interests:['Tech','Wine','Hiking'] },
-  { _id:'p6', name:'Seun Alade', age:25, gender:'woman', location:'Abuja, Nigeria', bio:'Singer-songwriter. Music is my language. 🎵', photos:[CLOUDINARY_SAMPLES[5]], interests:['Music','Art','Poetry'] },
-  { _id:'p7', name:'Kwame Asante', age:29, gender:'man', location:'Accra, Ghana', bio:'Architect | Coffee enthusiast | Amateur chef ☕', photos:[CLOUDINARY_SAMPLES[0]], interests:['Architecture','Food','Coffee'] },
-  { _id:'p8', name:'Emeka Obi', age:31, gender:'man', location:'Lagos, Nigeria', bio:'Finance & fitness. Living intentionally. 💪', photos:[CLOUDINARY_SAMPLES[1]], interests:['Finance','Fitness','Travel'] },
-  { _id:'p9', name:'Tafadzwa Moyo', age:27, gender:'man', location:'Harare, Zimbabwe', bio:'Software engineer building for Africa. 🖥️', photos:[CLOUDINARY_SAMPLES[2]], interests:['Tech','Music','Gaming'] },
-];
-
-const MOCK_MATCHES = [
-  { _id:'m1', name:'Amara Diallo', age:26, location:'Lagos', lastMessage:'Hey! I love your profile 😊', time:'2m', unread:2, photo:CLOUDINARY_SAMPLES[0], online:true },
-  { _id:'m2', name:'Zuri Okonkwo', age:24, location:'Nairobi', lastMessage:'Would love to chat sometime!', time:'1h', unread:0, photo:CLOUDINARY_SAMPLES[1], online:false },
-  { _id:'m3', name:'Nia Mensah', age:28, location:'Accra', lastMessage:"It's a match! 🎉", time:'3h', unread:1, photo:CLOUDINARY_SAMPLES[2], online:true },
-];
-
-const MOCK_MESSAGES = {
-  'm1': [
-    { id:1, from:'them', text:"Hey! I love your profile 😊", time:'2:30 PM' },
-    { id:2, from:'them', text:"What brings you to the app?", time:'2:31 PM' },
-  ],
-  'm2': [{ id:1, from:'them', text:"Would love to chat sometime!", time:'1:15 PM' }],
-  'm3': [{ id:1, from:'them', text:"It's a match! 🎉", time:'10:00 AM' }],
-};
 
 /* ============================================================
    UTILS
@@ -1657,15 +1525,21 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
   if (body) opts.body = JSON.stringify(body);
-
   try {
     const res = await fetch(API_BASE + endpoint, opts);
-    if (!res.ok) {
-      console.warn(`API ${endpoint} returned ${res.status}`);
+    if (res.status === 401) {
+      // Token expired — send user to login
+      handleLogout();
+      showToast('Session expired — please sign in again', 'error');
+      return null;
     }
-    return await res.json();
+    const data = await res.json();
+    if (!res.ok) {
+      console.warn(`API ${method} ${endpoint} →`, res.status, data?.error || data);
+    }
+    return data;
   } catch (e) {
-    console.error(`API call failed: ${endpoint}`, e);
+    console.error(`API ${method} ${endpoint} failed:`, e.message);
     return null;
   }
 }
@@ -1779,8 +1653,17 @@ function handleLogout() {
 /* ============================================================
    APP INIT
    ============================================================ */
-function initApp() {
-  loadProfile(); switchPanel('discover'); loadMatches(); loadConversations(); updateBadges();
+async function initApp() {
+  // Refresh currentUser from the server to get latest photos, stats, etc.
+  const meRes = await apiCall('/users/me');
+  if (meRes && meRes.user) {
+    currentUser = { ...currentUser, ...meRes.user };
+    localStorage.setItem('zawadi_user', JSON.stringify(currentUser));
+  }
+  loadProfile();
+  loadMatches();
+  loadConversations();
+  updateBadges();
   // loadProfiles() is called at the end of loadProfile() so that
   // the gender-preference dropdown is set BEFORE profiles are filtered.
 }
@@ -2014,45 +1897,44 @@ function toggleSetting(btn) { btn.classList.toggle('on'); }
 /* ============================================================
    PROFILES / CARD STACK
    ============================================================ */
-// Improved loadProfiles with better fallback
 async function loadProfiles() {
-  let allProfiles = [];
-  try {
-    const res = await apiCall('/discover');
-    if (res && res.profiles) allProfiles = res.profiles;
-  } catch (e) {
-    console.warn('API unavailable, using mock data');
+  // Show loading state in card stack
+  const stack = document.getElementById('card-stack');
+  stack.innerHTML = `<div class="empty-state" style="position:absolute;inset:0">
+    <div class="empty-icon" style="animation:spin 1.2s linear infinite">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="16" stroke="#E2E8F0" stroke-width="4"/>
+        <path d="M20 4a16 16 0 0116 16" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p style="margin-top:12px;color:var(--text-muted);font-size:13px">Loading profiles…</p>
+  </div>`;
+
+  const res = await apiCall('/discover');
+
+  if (!res) {
+    stack.innerHTML = `<div class="empty-state" style="position:absolute;inset:0">
+      <div class="empty-icon">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><path d="M28 6C15.85 6 6 15.85 6 28s9.85 22 22 22 22-9.85 22-22S40.15 6 28 6z" stroke="#CBD5E1" stroke-width="3"/><path d="M28 20v10M28 36v2" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Connection Error</h3>
+      <p>Could not reach the server. Please check your connection.</p>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="loadProfiles()">Try Again</button>
+    </div>`;
+    return;
   }
 
-  if (allProfiles.length === 0) {
-    allProfiles = [...MOCK_PROFILES];
-  }
+  let allProfiles = res.profiles || [];
 
-  // Filter logic (existing)
+  // Exclude the current user's own profile if present
   if (currentUser) {
-    const preference = (document.getElementById('pref-interested-in')?.value || 'everyone').toLowerCase();
-    if (preference !== 'everyone') {
-      const preferredGender = preference === 'women' ? 'woman' : 'man';
-      allProfiles = allProfiles.filter(p => (p.gender || '').toLowerCase() === preferredGender);
-    }
-    allProfiles = allProfiles.filter(p => p._id !== currentUser._id);
+    allProfiles = allProfiles.filter(p => String(p._id) !== String(currentUser._id));
   }
 
   profiles = allProfiles;
   currentCardIndex = 0;
   renderCardStack();
 }
-
-// Ensure we start on Discover after login
-function initApp() {
-  loadProfile();
-  switchPanel('discover');           // ← Important
-  loadMatches();
-  loadConversations();
-  updateBadges();
-}
-
-   
 function renderCardStack() {
   const stack = document.getElementById('card-stack');
   stack.innerHTML = '';
@@ -2162,9 +2044,11 @@ async function handleLike(profile) {
   if (!profile) return;
   popHeart();
   const res = await apiCall('/swipe', 'POST', { targetId: profile._id, direction: 'right' });
-  const isMatch = (res && res.match) || Math.random() < 0.35;
-  if (isMatch) setTimeout(() => showMatchModal(profile), 500);
-  else showToast(`You liked ${profile.name}!`, 'success');
+  if (res && res.match) {
+    setTimeout(() => showMatchModal(profile), 500);
+  } else {
+    showToast(`You liked ${profile.name}!`, 'success');
+  }
 }
 function popHeart() {
   const h = document.createElement('div');
@@ -2191,27 +2075,40 @@ function boostProfile() { showToast('Profile boosted for 30 minutes!', 'success'
    ============================================================ */
 async function loadMatches() {
   const res = await apiCall('/matches');
-  myMatches = (res && res.matches) ? res.matches : [...MOCK_MATCHES];
+  myMatches = (res && res.matches) ? res.matches.map(m => ({
+    ...m,
+    // Normalise: API returns photos[] array, UI needs photo (singular)
+    photo: m.photo || (m.photos && m.photos[0]) || null,
+  })) : [];
   renderMatches(); updateBadges();
 }
 function renderMatches() {
   const newScroll = document.getElementById('new-matches-scroll');
+  const list = document.getElementById('matches-list');
+  if (myMatches.length === 0) {
+    newScroll.innerHTML = '';
+    list.innerHTML = `<div style="padding:40px 28px;text-align:center;color:var(--text-muted);font-size:13px">
+      <div style="font-size:48px;margin-bottom:12px">💫</div>
+      <div style="font-weight:600;color:var(--text);margin-bottom:6px">No matches yet</div>
+      <div>Keep swiping to find your match!</div>
+    </div>`;
+    return;
+  }
   newScroll.innerHTML = myMatches.map(m => `
     <div class="match-bubble" onclick="openChatWith('${m._id}')">
       <div class="match-bubble-avatar">
-        ${m.photo ? `<img src="${m.photo}" alt="${m.name}">` : `<svg width="30" height="30" viewBox="0 0 30 30" fill="none"><circle cx="15" cy="10" r="6" fill="#DBEAFE"/><path d="M4 28c0-6.1 4.9-11 11-11s11 4.9 11 11" stroke="#DBEAFE" stroke-width="2.5" stroke-linecap="round"/></svg>`}
+        ${(m.photo || m.photos?.[0]) ? `<img src="${m.photo || m.photos?.[0]}" alt="${m.name}">` : `<svg width="30" height="30" viewBox="0 0 30 30" fill="none"><circle cx="15" cy="10" r="6" fill="#DBEAFE"/><path d="M4 28c0-6.1 4.9-11 11-11s11 4.9 11 11" stroke="#DBEAFE" stroke-width="2.5" stroke-linecap="round"/></svg>`}
       </div>
-      <span>${m.name.split(' ')[0]}</span>
+      <span>${(m.name || 'Match').split(' ')[0]}</span>
     </div>
   `).join('');
-  const list = document.getElementById('matches-list');
   list.innerHTML = myMatches.map(m => `
     <div class="match-item" onclick="openChatWith('${m._id}')">
       <div class="match-avatar">
-        ${m.photo ? `<img src="${m.photo}" alt="${m.name}">` : `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="9" r="5" fill="#DBEAFE"/><path d="M4 26c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="#DBEAFE" stroke-width="2.2" stroke-linecap="round"/></svg>`}
+        ${(m.photo || m.photos?.[0]) ? `<img src="${m.photo || m.photos?.[0]}" alt="${m.name}">` : `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="9" r="5" fill="#DBEAFE"/><path d="M4 26c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="#DBEAFE" stroke-width="2.2" stroke-linecap="round"/></svg>`}
       </div>
       <div class="match-info">
-        <div class="match-name">${m.name}</div>
+        <div class="match-name">${m.name || 'Match'}</div>
         <div class="match-preview">${m.lastMessage || 'Say hello!'}</div>
       </div>
       <div class="match-meta">
@@ -2225,15 +2122,21 @@ function showMatchModal(profile) {
   document.getElementById('match-modal-text').textContent =
     `You and ${profile.name} both liked each other. Start a conversation!`;
   const theirEl = document.getElementById('match-their-avatar');
-  if (profile.photos && profile.photos[0]) {
-    theirEl.innerHTML = `<img src="${profile.photos[0]}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  const photoUrl = profile.photos?.[0] || profile.photo || null;
+  if (photoUrl) {
+    theirEl.innerHTML = `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
   }
   const newMatch = {
     _id: profile._id, name: profile.name, age: profile.age,
-    location: profile.location, photo: profile.photos?.[0],
+    location: profile.location,
+    photo: photoUrl,
+    photos: profile.photos || [],
     lastMessage: '', time: 'just now', unread: 0, online: true,
   };
-  myMatches.unshift(newMatch);
+  // Only add if not already in myMatches
+  if (!myMatches.find(m => String(m._id) === String(profile._id))) {
+    myMatches.unshift(newMatch);
+  }
   renderMatches(); updateBadges();
   openModal('match-modal');
 }
@@ -2250,12 +2153,25 @@ function openMatchChat() {
    ============================================================ */
 async function loadConversations() {
   const res = await apiCall('/conversations');
-  conversations = (res && res.conversations) ? res.conversations : [...MOCK_MATCHES];
+  conversations = (res && res.conversations) ? res.conversations.map(c => ({
+    ...c,
+    time: c.time ? new Date(c.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '',
+  })) : [];
   renderChatList();
 }
 function renderChatList() {
   const list = document.getElementById('chat-list');
-  const data = conversations.length ? conversations : myMatches;
+  // Merge matches and conversations, deduplicate by _id
+  const seen = new Set();
+  const data = [...myMatches, ...conversations].filter(c => {
+    const id = String(c._id);
+    if (seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+  if (data.length === 0) {
+    list.innerHTML = `<div style="padding:28px 18px;text-align:center;color:var(--text-muted);font-size:13px">No conversations yet.<br>Start chatting with your matches!</div>`;
+    return;
+  }
   list.innerHTML = data.map(c => `
     <div class="chat-item" id="chat-item-${c._id}" onclick="openChatWith('${c._id}')">
       <div class="chat-item-avatar">
@@ -2263,7 +2179,7 @@ function renderChatList() {
         ${c.online ? '<div class="online-dot"></div>' : ''}
       </div>
       <div class="chat-item-info">
-        <div class="chat-item-name">${c.name}</div>
+        <div class="chat-item-name">${c.name || 'Match'}</div>
         <div class="chat-item-msg">${c.lastMessage || 'Say hello!'}</div>
       </div>
       <div class="chat-item-time">${c.time || ''}</div>
@@ -2276,18 +2192,16 @@ function filterChats(query) {
     item.style.display = name.includes(query.toLowerCase()) ? '' : 'none';
   });
 }
-function openChatWith(matchId) {
+async function openChatWith(matchId) {
   switchPanel('messages');
   document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
   const item = document.getElementById('chat-item-' + matchId);
   if (item) item.classList.add('active');
-  const match = [...myMatches, ...conversations].find(m => m._id === matchId);
+  const match = [...myMatches, ...conversations].find(m => String(m._id) === String(matchId));
   if (!match) return;
   activeConversation = matchId;
-  const messages = MOCK_MESSAGES[matchId] || [];
-  renderChatWindow(match, messages);
-}
-function renderChatWindow(match, messages) {
+
+  // Fetch real messages from the backend
   const win = document.getElementById('chat-window');
   const photoSrc = match.photo || match.photos?.[0];
   win.innerHTML = `
@@ -2297,7 +2211,7 @@ function renderChatWindow(match, messages) {
       </div>
       <div>
         <div class="chat-window-name">${match.name}</div>
-        <div class="chat-window-status">${match.online ? '● Online now' : 'Offline'}</div>
+        <div class="chat-window-status">${match.online ? '● Online now' : 'Active recently'}</div>
       </div>
       <div class="chat-window-actions">
         <button class="chat-icon-btn" onclick="showToast('Video call coming soon!','info')">
@@ -2309,8 +2223,7 @@ function renderChatWindow(match, messages) {
       </div>
     </div>
     <div class="chat-messages" id="chat-messages">
-      <div class="msg-day-divider">Today</div>
-      ${messages.map(renderMessage).join('')}
+      <div class="msg-day-divider" style="justify-content:center;font-size:11px;color:var(--text-muted)">Loading messages…</div>
     </div>
     <div class="chat-input-area">
       <div class="chat-input-wrap">
@@ -2328,8 +2241,27 @@ function renderChatWindow(match, messages) {
       </button>
     </div>
   `;
+
+  // Now fetch actual messages
+  const msgRes = await apiCall(`/messages/${matchId}`);
+  const msgArea = document.getElementById('chat-messages');
+  if (!msgArea) return; // user navigated away
+  if (msgRes && msgRes.messages && msgRes.messages.length > 0) {
+    msgArea.innerHTML = `<div class="msg-day-divider">Today</div>` +
+      msgRes.messages.map(msg => renderMessage({
+        from: String(msg.sender) === String(currentUser?._id) ? 'me' : 'them',
+        text: msg.text,
+        time: new Date(msg.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+      })).join('');
+  } else {
+    msgArea.innerHTML = `<div class="chat-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 0">
+      <div style="font-size:40px">👋</div>
+      <p style="color:var(--text-muted);font-size:13px">No messages yet — say hello!</p>
+    </div>`;
+  }
   scrollToBottom();
 }
+
 function renderMessage(msg) {
   const mine = msg.from === 'me';
   return `<div class="msg-group ${mine ? 'mine' : 'theirs'}">
@@ -2344,40 +2276,17 @@ async function sendMessage() {
   const text = field.value.trim();
   if (!text) return;
   field.value = '';
-  const msg = { id: Date.now(), from: 'me', text, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
-  if (!MOCK_MESSAGES[activeConversation]) MOCK_MESSAGES[activeConversation] = [];
-  MOCK_MESSAGES[activeConversation].push(msg);
+  const msg = { from: 'me', text, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
   const msgArea = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.innerHTML = renderMessage(msg);
   msgArea.appendChild(div.firstElementChild);
   scrollToBottom();
-  const match = [...myMatches, ...conversations].find(m => m._id === activeConversation);
+  const match = [...myMatches, ...conversations].find(m => String(m._id) === String(activeConversation));
   if (match) { match.lastMessage = text; match.time = 'just now'; renderChatList(); renderMatches(); }
   await apiCall('/messages', 'POST', { conversationId: activeConversation, text });
-  setTimeout(() => simulateReply(match), 1200 + Math.random() * 2000);
 }
-function simulateReply(match) {
-  if (!match || !document.getElementById('chat-messages')) return;
-  const replies = [
-    "That's so interesting! Tell me more 😊",
-    "Haha, you're funny!",
-    "I totally agree with you!",
-    "Wow, I didn't know that!",
-    "You seem really cool. I'd love to meet sometime",
-    "Same here! What are you up to this weekend?",
-  ];
-  const text = replies[Math.floor(Math.random() * replies.length)];
-  const msg = { id: Date.now(), from: 'them', text, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
-  MOCK_MESSAGES[activeConversation].push(msg);
-  const msgArea = document.getElementById('chat-messages');
-  if (msgArea) {
-    const div = document.createElement('div');
-    div.innerHTML = renderMessage(msg);
-    msgArea.appendChild(div.firstElementChild);
-    scrollToBottom();
-  }
-}
+
 function scrollToBottom() { const m = document.getElementById('chat-messages'); if (m) m.scrollTop = m.scrollHeight; }
 function insertEmoji() {
   const emojis = ['😊','❤️','🌍','✨','😂','🔥','🙌','💫','🎵','🌟'];
