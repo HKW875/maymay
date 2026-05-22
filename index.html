@@ -1897,13 +1897,12 @@ function toggleSetting(btn) { btn.classList.toggle('on'); }
 /* ============================================================
    PROFILES / CARD STACK
    ============================================================ */
+/* ============================================================
+   PROFILES / CARD STACK
+   ============================================================ */
 async function loadProfiles() {
-  // Guard: never attempt the API call without a valid token —
-  // doing so triggers a 401 which calls handleLogout() and bounces
-  // the user back to the auth screen.
   if (!authToken) return;
 
-  // Show loading state in card stack
   const stack = document.getElementById('card-stack');
   stack.innerHTML = `<div class="empty-state" style="position:absolute;inset:0">
     <div class="empty-icon" style="animation:spin 1.2s linear infinite">
@@ -1912,26 +1911,27 @@ async function loadProfiles() {
         <path d="M20 4a16 16 0 0116 16" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
       </svg>
     </div>
-    <p style="margin-top:12px;color:var(--text-muted);font-size:13px">Loading profiles…</p>
+    <p style="margin-top:12px;color:var(--text-muted);font-size:13px">Finding people near you...</p>
   </div>`;
 
   const res = await apiCall('/discover');
 
-  if (!res) {
+  if (!res || !res.profiles) {
     stack.innerHTML = `<div class="empty-state" style="position:absolute;inset:0">
       <div class="empty-icon">
         <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><path d="M28 6C15.85 6 6 15.85 6 28s9.85 22 22 22 22-9.85 22-22S40.15 6 28 6z" stroke="#CBD5E1" stroke-width="3"/><path d="M28 20v10M28 36v2" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/></svg>
       </div>
-      <h3>Connection Error</h3>
-      <p>Could not reach the server. Please check your connection.</p>
-      <button class="btn btn-primary" style="margin-top:12px" onclick="loadProfiles()">Try Again</button>
+      <h3>No profiles found</h3>
+      <p>Be the first to join or check back later!</p>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="loadProfiles()">Refresh</button>
     </div>`;
+    profiles = [];
     return;
   }
 
   let allProfiles = res.profiles || [];
 
-  // Exclude the current user's own profile if present
+  // Exclude current user
   if (currentUser) {
     allProfiles = allProfiles.filter(p => String(p._id) !== String(currentUser._id));
   }
@@ -1940,6 +1940,8 @@ async function loadProfiles() {
   currentCardIndex = 0;
   renderCardStack();
 }
+
+   
 function renderCardStack() {
   const stack = document.getElementById('card-stack');
   stack.innerHTML = '';
