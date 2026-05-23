@@ -1358,7 +1358,7 @@ body {
               <span class="profile-age" id="display-age">—</span>
               <span class="premium-badge">★ Gold</span>
             </div>
-            <div class="profile-location" id="display-location">📌 Location</div>
+            <div class="profile-location" id="display-location">🏙️ Location</div>
             <div class="profile-bio" id="display-bio">Add a bio to let people know who you are…</div>
             <div class="profile-tags" id="display-tags"></div>
           </div>
@@ -2127,7 +2127,7 @@ function loadProfile() {
   const savedLocation = currentUser.location || '';
   document.getElementById('edit-location').value = savedLocation;
   // Display the saved location immediately
-  document.getElementById('display-location').textContent = savedLocation ? '📌 ' + savedLocation : '📌 Add your location';
+  document.getElementById('display-location').textContent = savedLocation ? '🏙️ ' + savedLocation : '🏙️ Add your location';
 
   document.getElementById('edit-bio').value = currentUser.bio || '';
   document.getElementById('edit-occupation').value = currentUser.occupation || '';
@@ -2216,7 +2216,7 @@ function liveUpdateProfile() {
   // Only update display-location from the edit field if it has content
   const loc = document.getElementById('edit-location').value;
   if (loc) {
-    document.getElementById('display-location').textContent = '📌 ' + loc;
+    document.getElementById('display-location').textContent = '🏙️ ' + loc;
   }
   document.getElementById('display-bio').textContent = document.getElementById('edit-bio').value || 'Add a bio…';
   const interests = document.getElementById('edit-interests').value.split(',').map(s=>s.trim()).filter(Boolean);
@@ -2471,7 +2471,7 @@ function createCard(profile, stackPos) {
     <div class="swipe-indicator swipe-like">LIKE</div>
     <div class="card-info">
       <div class="card-name">${profile.name}, ${profile.age}</div>
-      <div class="card-sub">📍 ${profile.location}</div>
+      <div class="card-sub">🏙️ ${profile.location}</div>
       <div class="card-sub" style="margin-top:4px;font-size:12px;color:rgba(255,255,255,0.65)">${profile.bio || ''}</div>
       <div class="card-badges">${badges}</div>
     </div>
